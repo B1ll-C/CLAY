@@ -2,11 +2,15 @@
 
 import journal from './meta/_journal.json';
 import m0000 from './0000_parched_micromax.sql';
+import m0001 from './0001_panoramic_shocker.sql';
+import m0002 from './0002_new_luckman.sql';
 
   export default {
     journal,
     migrations: {
-      m0000
+      m0000,
+m0001,
+m0002
     }
   }
   

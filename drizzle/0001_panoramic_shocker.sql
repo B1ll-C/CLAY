@@ -1,0 +1,1 @@
+ALTER TABLE `tbllist_title` RENAME COLUMN "task_title" TO "list_title";

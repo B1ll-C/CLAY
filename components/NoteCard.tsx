@@ -8,13 +8,19 @@ import { Pressable, Text, View } from "react-native";
 //   onPress?: () => void;
 // };
 
-export default function NoteCard({ title, list, onPress }: NoteCardProps) {
+export default function NoteCard({
+  title,
+  list,
+  onPress,
+  onLongPress,
+}: NoteCardProps) {
   const previewLimit = 3;
   const hasMore = list.length > previewLimit;
 
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
       className="w-36 h-36 bg-white rounded-2xl p-3 shadow"
     >
       {/* Title */}
@@ -29,7 +35,7 @@ export default function NoteCard({ title, list, onPress }: NoteCardProps) {
       {/* List preview */}
       <View className="flex-1">
         {list.slice(0, previewLimit).map((item, index) =>
-          item.name ? (
+          item.item ? (
             <Text
               key={index}
               className={`text-sm text-gray-600 ${
@@ -38,7 +44,7 @@ export default function NoteCard({ title, list, onPress }: NoteCardProps) {
               numberOfLines={1}
               ellipsizeMode="tail"
             >
-              {item.name}
+              {item.item}
             </Text>
           ) : null
         )}

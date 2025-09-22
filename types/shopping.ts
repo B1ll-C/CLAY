@@ -2,7 +2,7 @@
 
 export type ListItem = {
   id: number;
-  name: string;
+  item: string;
   isChecked: boolean;
 };
 
@@ -15,8 +15,9 @@ export type ShoppingList = {
 
 export type NoteCardProps = {
   title: string;
-  list: { name: string; isChecked: boolean }[];
+  list: { item: string; isChecked: boolean }[];
   onPress?: () => void;
+  onLongPress?: () => void;
 };
 
 // type ShoppingListType = {

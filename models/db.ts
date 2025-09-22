@@ -6,5 +6,7 @@ import * as SQLite from "expo-sqlite";
 export const expo = SQLite.openDatabaseSync("clay");
 // useDrizzleStudio(expo);
 
+expo.execSync("PRAGMA foreign_keys = ON;");
+
 // drizzle connection
 export const db = drizzle(expo, { schema });
