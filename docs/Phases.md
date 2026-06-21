@@ -317,8 +317,18 @@ _Implemented in code; `tsc --noEmit`, `eslint`, and `drizzle-kit generate` clean
 
 ## Phase 5 — Shopping List Module
 
-**Status:** ⬜ Not started (partial UI exists, not DB-backed)
+**Status:** ✅ Mobile complete (offline-only) — `feat/shopping-list-rewrite`; backend list routes deferred to Phase 8
 **Effort:** 6 days (4 mobile + 2 backend)
+
+> **As built — deviations from the original plan below:**
+> - No schema or migration changes — the Phase 3 `shopping_lists` / `shopping_list_items` tables already carry sync columns and are registered in `SYNCED_TABLES`. Phase 5 is controller + hooks + UI only.
+> - Detail/add/edit follow the Phase 4 inventory convention: one tab-nested route `app/(tabs)/ListDetails/[id].tsx` (`href: null`) plus modals (`ListFormModal`, `ListItemFormModal`), not a top-level `app/lists/[id].tsx`.
+> - New components live in `mobile/components/shopping/*` (`ListCard`, `ListFormModal`, `ShoppingItemRow`, `ListItemFormModal`); the legacy `NoteCard.tsx` and `ShoppingList.tsx` were **deleted** rather than updated, along with the now-dead `mobile/types/` (legacy `ListItem`/`ShoppingList` view types).
+> - Items are freeform (`name` + optional `productId`); typing a name does **not** create a catalog product (avoids polluting the catalog). `productId` is set only when an item is generated from inventory. Catalog/product search add lands with the Groceries tab later.
+> - Delete uses a trailing trash button (no swipe-to-delete); reorder is by insertion `sortOrder` (no drag-handle UI) — both avoid wiring `GestureHandlerRootView` + a native rebuild. Check-off uses `expo-haptics` (already a dependency).
+> - `generateFromAlerts(listId)` adds the deficit-to-threshold (≥1) for each low/out-of-stock inventory item, skipping products/names already on the list, and returns the count added.
+> - The Phase-5 cleanup targets `mobile/models/schema.ts` and `mobile/app/(tabs)/test_tab.tsx` were already removed in an earlier phase — nothing to delete here.
+> - Backend ("shopping-list-api") is **not** in this PR — per the MVP cutoff it ships with the Phase 8 sync transport.
 
 ### Goal
 Replace the current hardcoded/stubbed shopping list with a fully functional, offline-capable multi-list system integrated with the inventory layer.
@@ -352,21 +362,21 @@ async function generateListFromAlerts(listId: number): Promise<void>
 ```
 
 ### Cleanup in this Phase
-- Delete `mobile/models/schema.ts` — deprecated old schema (`tblitems`, `tbllists`)
-- Delete `mobile/app/(tabs)/test_tab.tsx` — test tab in production routing
-- Replace all stubs in `mobile/controller/ShoppingListController.ts`
+- `mobile/models/schema.ts` (old `tblitems`/`tbllists`) and `mobile/app/(tabs)/test_tab.tsx` — already removed in an earlier phase
+- ✅ Replaced all stubs in `mobile/controller/ShoppingListController.ts` (the `TaskController` bridge)
+- ✅ Deleted legacy `mobile/components/NoteCard.tsx`, `mobile/components/ShoppingList.tsx`, and `mobile/types/`
 
-### New / Updated Files
+### New / Updated Files (as built — mobile only)
 ```
-mobile/app/(tabs)/list.tsx                — fully DB-backed with React Query
-mobile/app/lists/[id].tsx                 — list detail / editor
-mobile/components/NoteCard.tsx            — updated to use real DB data
-mobile/components/ShoppingList.tsx        — updated: drag-to-reorder, swipe-delete
-mobile/controller/ShoppingListController.ts — complete implementation
-mobile/hooks/useShoppingLists.ts
-backend/src/routes/lists.ts
-backend/src/services/ListService.ts
+shared/validation/schemas.ts (updated)      — shoppingListItem input: freeform name + optional productId
+mobile/controller/ShoppingListController.ts  — sync-aware list/item CRUD + generateFromAlerts (replaces stub)
+mobile/hooks/useShoppingLists.ts             — React Query reads + list/item/check/bulk/restock mutations
+mobile/app/(tabs)/list.tsx                   — lists hub (FlatList of ListCard, FAB)
+mobile/app/(tabs)/ListDetails/[id].tsx, _layout.tsx — list detail / editor + bulk actions
+mobile/app/(tabs)/_layout.tsx (updated)      — registers ListDetails (href: null)
+mobile/components/shopping/*                 — ListCard, ListFormModal, ShoppingItemRow, ListItemFormModal
 ```
+Deferred to Phase 8 (backend): `backend/src/routes/lists.ts`, `services/ListService.ts`.
 
 ### Sharing (V2)
 - Backend: `list_shares` table — `list_id`, `user_id`, `permission` (view/edit)
@@ -377,14 +387,15 @@ backend/src/services/ListService.ts
 - Phase 3 (sync schema), Phase 4 (inventory alerts for auto-populate)
 
 ### Acceptance Criteria
-- Creating a list and killing the app: list is present on relaunch
-- Checking an item: `is_checked` written to SQLite immediately (not just local state)
-- "Add low-stock items": items appear matching current inventory alerts
-- Deleting a list: all child `shopping_list_items` are cascade-deleted
+_Implemented in code; `tsc --noEmit` and `eslint` clean. On-device QA still pending._
+- Creating a list and killing the app: list is present on relaunch (persisted to SQLite with `sync_status = 'pending_create'` + a `sync_queue` entry)
+- Checking an item: `is_checked` written to SQLite immediately via `setItemChecked` (not just local state)
+- "Add low-stock items": items appear matching current inventory low/out-of-stock alerts
+- Deleting a list: all child `shopping_list_items` are soft-deleted (explicit cascade, since rows are tombstoned not hard-deleted)
 
 ### Pull Requests
-- PR 8: `feat/shopping-list-rewrite` — full CRUD, inventory integration, remove stubs + test tab
-- PR 9: `feat/shopping-list-api` — backend routes
+- PR 8: `feat/shopping-list-rewrite` — full CRUD, inventory integration, remove stubs (SQLite only) ✅
+- PR 9: `feat/shopping-list-api` — backend routes (deferred to Phase 8)
 
 ---
 

@@ -35,8 +35,8 @@ npm run android         # proxies to mobile/ expo run:android
 The `@/*` alias inside `mobile/` maps to `mobile/` itself.
 
 ```typescript
-import { db } from '@/models/db';          // mobile/models/db.ts
-import { ShoppingList } from '@/types/shopping'; // mobile/types/shopping.ts
+import { db } from '@/models/db';                 // mobile/models/db.ts
+import { ShoppingListController } from '@/controller/ShoppingListController'; // mobile/controller/…
 ```
 
 Shared package imports (Phase 2+):
@@ -51,12 +51,13 @@ import { ProductCategory } from '@clay/shared/constants/categories';
 | `mobile/app/_layout.tsx` | Root layout — SQLite init, Drizzle migrations, providers |
 | `mobile/models/db.ts` | Drizzle ORM + expo-sqlite instance |
 | `mobile/models/index.ts` | Schema exports (used by drizzle.config.ts) |
-| `mobile/controller/ShoppingListController.ts` | DB operations for shopping lists |
+| `mobile/controller/ShoppingListController.ts` | Sync-aware multi-list CRUD + items + inventory-alert restock |
 | `mobile/controller/InventoryController.ts` | Sync-aware inventory CRUD + movement log |
 | `mobile/controller/ProductController.ts` | Product catalog ops (find-or-create by name) |
 | `mobile/models/inventoryMovements.ts` | Append-only inventory movement-log table |
 | `mobile/lib/inventory/alerts.ts` | Low-stock / expiry / out-of-stock alert rules |
 | `mobile/hooks/useInventory.ts` | Inventory queries + create/update/adjust/delete mutations |
+| `mobile/hooks/useShoppingLists.ts` | Shopping-list queries + list/item/check/restock mutations |
 | `mobile/models/_syncColumns.ts` | Sync-metadata mixin spread into every synced table |
 | `mobile/lib/sync/SyncEngine.ts` | Push/pull/conflict engine (offline-only until Phase 8) |
 | `mobile/controller/SyncController.ts` | `sync_queue` outbox DB operations |
@@ -82,7 +83,7 @@ Color palette (sage green theme):
 
 See `mobile/tailwind.config.js` for full theme. Use NativeWind Tailwind classes in all components.
 
-## Current State (Phase 4 complete)
+## Current State (Phase 5 complete)
 
 - ✅ Monorepo structure
 - ✅ SQLite + Drizzle ORM foundation
@@ -94,7 +95,7 @@ See `mobile/tailwind.config.js` for full theme. Use NativeWind Tailwind classes 
 - ✅ `useNetworkStatus` + `useSyncStatus` hooks
 - ✅ Inventory management — full CRUD, smart alerts (low-stock/expiry/out-of-stock), movement log; sync-aware writes (`mobile/controller/InventoryController.ts`, `mobile/app/(tabs)/inventory.tsx` + `InventoryDetails/`, `mobile/components/inventory/`)
 - ✅ Tab navigation (Groceries, List, Inventory)
-- 🔄 Shopping list UI (partial — not fully DB-backed; Phase 5 rewrite)
+- ✅ Shopping lists — DB-backed multi-list CRUD, freeform/checkable items, "Add low-stock items" restock from inventory alerts, bulk check/clear; sync-aware writes (`mobile/controller/ShoppingListController.ts`, `mobile/hooks/useShoppingLists.ts`, `mobile/app/(tabs)/list.tsx` + `ListDetails/`, `mobile/components/shopping/`)
 - 🔄 Groceries/product tab UI — still hardcoded (products are auto-created via inventory find-or-create; catalog screen lands later)
 - ❌ Backend API (auth, sync transport, feature routes) — not yet (Phase 8)
 - ❌ Auth — not yet (Phase 8)
