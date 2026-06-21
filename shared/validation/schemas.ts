@@ -5,6 +5,7 @@
 import { z } from "zod";
 
 import { PRODUCT_CATEGORIES } from "../constants/categories";
+import { MOVEMENT_REASONS, STORAGE_LOCATIONS } from "../constants/inventory";
 
 /** Units used across inventory and shopping items. */
 export const UNITS = ["each", "kg", "lb", "oz", "g", "L", "mL"] as const;
@@ -38,3 +39,45 @@ export const productInputSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 export type ProductInput = z.infer<typeof productInputSchema>;
+
+/** Storage location of an inventory item. */
+export const storageLocationSchema = z.enum(STORAGE_LOCATIONS);
+/** Reason an inventory quantity changed (drives the movement log). */
+export const movementReasonSchema = z.enum(MOVEMENT_REASONS);
+
+/**
+ * Create / edit an inventory item. The item names a catalog product (the mobile
+ * form resolves `productName` to a `productId` via find-or-create); the rest are
+ * stock attributes. `expirationDate` is a JS `Date` so forms can bind a picker
+ * directly — the sync wire format serializes it to unix seconds separately.
+ */
+export const inventoryItemInputSchema = z.object({
+  productName: z.string().trim().min(1, "Name is required").max(120),
+  brand: z.string().trim().max(120).optional(),
+  category: z.enum(PRODUCT_CATEGORIES).optional(),
+  quantity: z.number().nonnegative("Quantity can't be negative").default(0),
+  unit: unitSchema.optional(),
+  location: storageLocationSchema.default("pantry"),
+  minQuantity: z
+    .number()
+    .nonnegative("Threshold can't be negative")
+    .nullable()
+    .optional(),
+  costPerUnit: z.number().nonnegative().nullable().optional(),
+  expirationDate: z.date().nullable().optional(),
+  notes: z.string().max(500).optional(),
+});
+export type InventoryItemInput = z.infer<typeof inventoryItemInputSchema>;
+
+/**
+ * Adjust an item's on-hand quantity. `delta` is signed (negative consumes); the
+ * controller clamps the resulting quantity at zero and records a movement row.
+ */
+export const inventoryAdjustmentInputSchema = z.object({
+  delta: z.number().refine((n) => n !== 0, "Enter a non-zero amount"),
+  reason: movementReasonSchema.default("adjust"),
+  notes: z.string().max(500).optional(),
+});
+export type InventoryAdjustmentInput = z.infer<
+  typeof inventoryAdjustmentInputSchema
+>;
