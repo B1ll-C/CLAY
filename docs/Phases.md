@@ -100,7 +100,7 @@ Wire the global state management, server-state cache, and validation layers so a
 
 ## Phase 3 — Offline-First Foundation
 
-**Status:** ⬜ Not started
+**Status:** ✅ Core complete (offline-only; backend transport deferred to Phase 8)
 **Effort:** 5 days
 
 ### Goal
