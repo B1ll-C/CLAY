@@ -74,16 +74,19 @@ Color palette (sage green theme):
 
 See `mobile/tailwind.config.js` for full theme. Use NativeWind Tailwind classes in all components.
 
-## Current State (Phase 1 complete)
+## Current State (Phase 2 complete)
 
 - ✅ Monorepo structure
 - ✅ SQLite + Drizzle ORM foundation
+- ✅ State management — Zustand (UI state, `mobile/store/`) + TanStack Query v5 (`mobile/lib/queryClient.ts`, `mobile/hooks/`)
+- ✅ Zod validation schemas in `shared/validation/schemas.ts` (`@clay/shared`)
+- ✅ Backend scaffold — Fastify + Drizzle + Postgres connection, `/health` + `/health/db`, migration runner
 - ✅ Shopping list UI (partial — not fully DB-backed)
 - ✅ Tab navigation (Groceries, List, Inventory)
 - 🔄 Inventory tab — empty placeholder
 - 🔄 Product data — hardcoded
-- ❌ Backend — scaffolded, not implemented
-- ❌ Auth, sync — not yet
+- ❌ Backend API (auth, sync, feature routes) — not yet (Phase 8)
+- ❌ Auth, sync engine — not yet (Phase 3 / Phase 8)
 
 ## Phase Checklist
 
