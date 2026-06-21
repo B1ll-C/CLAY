@@ -32,6 +32,7 @@ export const SYNCED_TABLES = [
   'stores',
   'shopping_lists',
   'inventory_items',
+  'inventory_movements',
   'shopping_list_items',
   'store_prices',
 ] as const;

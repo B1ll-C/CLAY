@@ -1,17 +1,8 @@
-import type { Unit } from "@clay/shared";
+import type { StorageLocation, Unit } from "@clay/shared";
 import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 import { products } from "./products";
 import { syncColumns } from "./_syncColumns";
-
-/** Where an inventory item is stored. */
-export const STORAGE_LOCATIONS = [
-  "pantry",
-  "fridge",
-  "freezer",
-  "other",
-] as const;
-export type StorageLocation = (typeof STORAGE_LOCATIONS)[number];
 
 /** A quantity of a product on hand, with expiry and low-stock thresholds. */
 export const inventoryItems = sqliteTable("inventory_items", {

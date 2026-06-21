@@ -8,6 +8,13 @@
       "when": 1782016554894,
       "tag": "0000_offline_first_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1782019152592,
+      "tag": "0001_low_the_santerians",
+      "breakpoints": true
     }
   ]
 }
