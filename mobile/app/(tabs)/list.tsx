@@ -1,16 +1,11 @@
 import NoteCard from "@/components/NoteCard";
 import SList from "@/components/ShoppingList";
 import { TaskController } from "@/controller/ShoppingListController";
-import { ListItems } from "@/models/schema";
 import { ShoppingList } from "@/types";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-interface Section {
-  id: number;
-  title: string; // list name or fallback
-  data: ListItems[];
-}
+
 function List() {
   const notes = [
     { id: "1", name: "milk", isChecked: true },

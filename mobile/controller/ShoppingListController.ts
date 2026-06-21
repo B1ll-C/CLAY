@@ -1,24 +1,17 @@
 import { db } from "@/models/db"; // import the shared Drizzle instance
-import { tbllist_title } from "@/models/index";
+import { shoppingLists } from "@/models/index";
 
+/**
+ * Thin bridge kept compiling against the Phase 3 `shopping_lists` table. The
+ * full DB-backed shopping-list module (multi-list CRUD, sync-aware writes) is
+ * rewritten in Phase 5 — see docs/Phases.md.
+ */
 export const TaskController = {
   getAll: async () => {
-    return await db.select().from(tbllist_title);
+    return await db.select().from(shoppingLists);
   },
 
   add: async (title: string) => {
-    await db.insert(tbllist_title).values({ list_title: "test" });
+    await db.insert(shoppingLists).values({ title });
   },
-
-  // add: async (title: string) => {
-  //   await db.insert(tasks).values({ title });
-  // },
-
-  // toggle: async (id: number, completed: boolean) => {
-  //   await db.update(tasks).set({ completed }).where(eq(tasks.id, id));
-  // },
-
-  // remove: async (id: number) => {
-  //   await db.delete(tasks).where(eq(tasks.id, id));
-  // },
 };

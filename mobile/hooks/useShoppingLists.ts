@@ -1,5 +1,5 @@
 import { db } from "@/models/db";
-import { tbllist_title } from "@/models/listTitle";
+import { shoppingLists } from "@/models/index";
 import { useQuery } from "@tanstack/react-query";
 
 /** Query-key factory for shopping-list queries. */
@@ -17,6 +17,6 @@ export const shoppingListKeys = {
 export function useShoppingLists() {
   return useQuery({
     queryKey: shoppingListKeys.all,
-    queryFn: async () => await db.select().from(tbllist_title),
+    queryFn: async () => await db.select().from(shoppingLists),
   });
 }
