@@ -4,19 +4,19 @@ Track cross-cutting technical requirements across the full build.
 
 ## Architecture
 - [x] Monorepo with npm workspaces configured (`mobile`, `backend`, `shared`)
-- [ ] `@clay/shared` package installed and resolving in both `mobile` and `backend`
-- [ ] Zod schemas in `shared/validation/schemas.ts` (Phase 2)
+- [x] `@clay/shared` package installed and resolving in both `mobile` and `backend`
+- [x] Zod schemas in `shared/validation/schemas.ts` (Phase 2)
 - [x] TypeScript strict mode on all three packages
 
 ## Mobile
 - [ ] All SQLite tables include sync columns: `sync_status`, `server_id`, `version` (Phase 3)
 - [x] Drizzle migrations run automatically in `mobile/app/_layout.tsx`
-- [ ] TanStack Query v5 installed, `QueryClientProvider` wrapping app (Phase 2)
-- [ ] Zustand installed and store created for UI-only state (Phase 2)
+- [x] TanStack Query v5 installed, `QueryClientProvider` wrapping app (Phase 2)
+- [x] Zustand installed and store created for UI-only state (Phase 2)
 - [ ] `expo-secure-store` used for JWT tokens — never AsyncStorage (Phase 8)
 - [ ] `expo-camera` configured in `mobile/app.json` with permission description (Phase 7)
 - [ ] All screens handle: loading state, empty state, error state (Phase 4+)
-- [ ] `mobile/app/(tabs)/test_tab.tsx` removed (Phase 5)
+- [x] `mobile/app/(tabs)/test_tab.tsx` removed (early — was breaking type-check)
 - [ ] `mobile/models/schema.ts` (deprecated old schema) removed (Phase 5)
 - [ ] `mobile/controller/ShoppingListController.ts` stubs replaced with real implementations (Phase 5)
 
@@ -27,7 +27,7 @@ Track cross-cutting technical requirements across the full build.
 - [ ] JWT middleware on all protected routes (Phase 8)
 - [ ] PostgreSQL connected via Drizzle ORM with migrations (Phase 8)
 - [ ] Redis connected for token store and caching (Phase 8)
-- [ ] `GET /health` returns `{ status: "ok", version, uptime }` (Phase 2 scaffold done)
+- [x] `GET /health` returns `{ status: "ok", version, uptime }` (Phase 2 scaffold done)
 - [ ] Structured JSON logging with Pino (Phase 8)
 - [ ] No secrets in source code — `.env.example` documents all required vars (Phase 8)
 
