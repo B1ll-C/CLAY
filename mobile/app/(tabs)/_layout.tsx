@@ -46,6 +46,13 @@ export default function TabLayout() {
           href: null,
         }}
       />
+
+      <Tabs.Screen
+        name="InventoryDetails"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

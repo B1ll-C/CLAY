@@ -1,4 +1,5 @@
 import { inventoryItems } from "@/models/inventoryItems";
+import { inventoryMovements } from "@/models/inventoryMovements";
 import { products } from "@/models/products";
 import { shoppingListItems } from "@/models/shoppingListItems";
 import { shoppingLists } from "@/models/shoppingLists";
@@ -16,6 +17,7 @@ export const SYNCED_TABLE_REGISTRY = {
   stores,
   shopping_lists: shoppingLists,
   inventory_items: inventoryItems,
+  inventory_movements: inventoryMovements,
   shopping_list_items: shoppingListItems,
   store_prices: storePrices,
 } satisfies Record<SyncedTable, unknown>;
