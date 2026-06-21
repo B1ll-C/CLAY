@@ -52,6 +52,11 @@ import { ProductCategory } from '@clay/shared/constants/categories';
 | `mobile/models/db.ts` | Drizzle ORM + expo-sqlite instance |
 | `mobile/models/index.ts` | Schema exports (used by drizzle.config.ts) |
 | `mobile/controller/ShoppingListController.ts` | DB operations for shopping lists |
+| `mobile/controller/InventoryController.ts` | Sync-aware inventory CRUD + movement log |
+| `mobile/controller/ProductController.ts` | Product catalog ops (find-or-create by name) |
+| `mobile/models/inventoryMovements.ts` | Append-only inventory movement-log table |
+| `mobile/lib/inventory/alerts.ts` | Low-stock / expiry / out-of-stock alert rules |
+| `mobile/hooks/useInventory.ts` | Inventory queries + create/update/adjust/delete mutations |
 | `mobile/models/_syncColumns.ts` | Sync-metadata mixin spread into every synced table |
 | `mobile/lib/sync/SyncEngine.ts` | Push/pull/conflict engine (offline-only until Phase 8) |
 | `mobile/controller/SyncController.ts` | `sync_queue` outbox DB operations |
@@ -77,20 +82,20 @@ Color palette (sage green theme):
 
 See `mobile/tailwind.config.js` for full theme. Use NativeWind Tailwind classes in all components.
 
-## Current State (Phase 3 complete)
+## Current State (Phase 4 complete)
 
 - ✅ Monorepo structure
 - ✅ SQLite + Drizzle ORM foundation
 - ✅ State management — Zustand (UI state, `mobile/store/`) + TanStack Query v5 (`mobile/lib/queryClient.ts`, `mobile/hooks/`)
 - ✅ Zod validation schemas in `shared/validation/` (`@clay/shared`) — domain + sync wire format
 - ✅ Backend scaffold — Fastify + Drizzle + Postgres connection, `/health` + `/health/db`, migration runner
-- ✅ Offline-first schema — `products`, `inventory_items`, `shopping_lists`, `shopping_list_items`, `stores`, `store_prices` + `sync_queue`, all with sync columns (`mobile/models/`)
+- ✅ Offline-first schema — `products`, `inventory_items`, `inventory_movements`, `shopping_lists`, `shopping_list_items`, `stores`, `store_prices` + `sync_queue`, all with sync columns (`mobile/models/`)
 - ✅ SyncEngine skeleton — push/pull/conflict + outbox (`mobile/lib/sync/`, `mobile/controller/SyncController.ts`); offline-only until Phase 8 transport
 - ✅ `useNetworkStatus` + `useSyncStatus` hooks
-- ✅ Shopping list UI (partial — not fully DB-backed)
+- ✅ Inventory management — full CRUD, smart alerts (low-stock/expiry/out-of-stock), movement log; sync-aware writes (`mobile/controller/InventoryController.ts`, `mobile/app/(tabs)/inventory.tsx` + `InventoryDetails/`, `mobile/components/inventory/`)
 - ✅ Tab navigation (Groceries, List, Inventory)
-- 🔄 Inventory tab — empty placeholder (Phase 4)
-- 🔄 Product data — hardcoded (Phase 4)
+- 🔄 Shopping list UI (partial — not fully DB-backed; Phase 5 rewrite)
+- 🔄 Groceries/product tab UI — still hardcoded (products are auto-created via inventory find-or-create; catalog screen lands later)
 - ❌ Backend API (auth, sync transport, feature routes) — not yet (Phase 8)
 - ❌ Auth — not yet (Phase 8)
 
