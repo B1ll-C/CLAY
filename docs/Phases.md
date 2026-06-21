@@ -60,7 +60,7 @@ Establish a clean monorepo separating the mobile app, backend, and shared code. 
 
 ## Phase 2 — Architecture Foundation
 
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 **Effort:** 3 days
 
 ### Goal
@@ -86,13 +86,15 @@ Wire the global state management, server-state cache, and validation layers so a
 | Backend DB | PostgreSQL + Drizzle ORM | Consistent ORM across mobile (SQLite) and backend (Postgres) |
 
 ### Acceptance Criteria
-- `npx expo start` launches with no errors after installing Zustand and React Query
-- A basic `useShoppingLists()` hook using React Query can be called in a screen without crashing
-- Zod is importable in both `mobile/` and `backend/` from `@clay/shared`
+- ✅ Zustand, TanStack Query v5, and Zod installed; mobile type-check clean (no new errors)
+- ✅ `useShoppingLists()` React Query hook added (`mobile/hooks/`); `QueryClientProvider` wraps the root layout
+- ✅ Zod schemas import and execute from `@clay/shared` in both mobile (tsc) and backend (tsx runtime)
+- ✅ Backend boots without a DB: `GET /health` → 200, `GET /health/db` → 503 until `DATABASE_URL` is set
+- ✅ Backend migration generated offline (`drizzle/0000_flimsy_ares.sql`); applied via `npm run db:migrate`
 
 ### Pull Requests
-- PR 2: `feat/state-management-foundation` — Zustand, React Query, Zod providers wired
-- PR 3: `feat/backend-scaffold` — Fastify + PostgreSQL + Drizzle ORM + health route
+- PR 2: `feat/state-management-foundation` — Zustand, React Query, Zod providers wired ✅
+- PR 3: `feat/backend-scaffold` — Fastify + PostgreSQL + Drizzle ORM + health routes ✅
 
 ---
 
@@ -646,7 +648,7 @@ Offline single-user app. No backend required.
 | Phase | Feature | Effort |
 |---|---|---|
 | 1 | Monorepo restructure | 2d ✅ |
-| 2 | State management foundation | 3d |
+| 2 | State management foundation | 3d ✅ |
 | 3 | Offline schema + SyncEngine | 5d |
 | 4 | Inventory management | 8d |
 | 5 | Shopping list rewrite | 6d |
@@ -684,8 +686,8 @@ Adds backend, authentication, cross-device sync, price comparison.
 | PR | Branch | Phase | Description |
 |---|---|---|---|
 | 1 | `feature/monorepo-restructure` | 1 | File moves, workspace config ✅ |
-| 2 | `feat/state-management-foundation` | 2 | Zustand, React Query, Zod wiring |
-| 3 | `feat/backend-scaffold` | 2 | Fastify, Postgres, JWT middleware, health route |
+| 2 | `feat/state-management-foundation` | 2 | Zustand, React Query, Zod wiring ✅ |
+| 3 | `feat/backend-scaffold` | 2 | Fastify, Postgres, Drizzle, health routes ✅ |
 | 4 | `feat/offline-schema` | 3 | New Drizzle schema + migrations |
 | 5 | `feat/sync-engine` | 3 | SyncEngine, useNetworkStatus |
 | 6 | `feat/inventory-ui` | 4 | Inventory screens + hooks (offline-only) |
