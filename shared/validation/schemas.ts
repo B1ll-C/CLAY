@@ -19,13 +19,18 @@ export const shoppingListInputSchema = z.object({
 });
 export type ShoppingListInput = z.infer<typeof shoppingListInputSchema>;
 
-/** Add / edit an item on a shopping list. */
+/**
+ * Add / edit an item on a shopping list. `name` is always present so freeform
+ * items work without a catalog record; `productId` links the line to a catalog
+ * product when one was chosen or when the item was generated from inventory.
+ * Checking an item off is a separate operation, not part of this form input.
+ */
 export const shoppingListItemInputSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(120),
-  quantity: z.number().positive().default(1),
-  unit: unitSchema.default("each"),
-  isChecked: z.boolean().default(false),
+  quantity: z.number().positive("Quantity must be greater than zero").default(1),
+  unit: unitSchema.nullable().optional(),
   notes: z.string().max(500).optional(),
+  productId: z.number().int().positive().nullable().optional(),
 });
 export type ShoppingListItemInput = z.infer<typeof shoppingListItemInputSchema>;
 
