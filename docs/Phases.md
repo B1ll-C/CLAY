@@ -201,8 +201,16 @@ SyncEngine
 
 ## Phase 4 — Inventory Management
 
-**Status:** ⬜ Not started
+**Status:** ✅ Mobile complete (offline-only) — `feat/inventory-management` (GitHub PR #4 → `develop`); backend inventory routes deferred to Phase 8
 **Effort:** 8 days (5 mobile + 3 backend)
+
+> **As built — deviations from the original plan below:**
+> - Movement log table is **`inventory_movements`** (not `movement_log`), and is a **synced table** (sync columns + an entry in shared `SYNCED_TABLES`); reasons are `initial / purchase / consume / waste / adjust`.
+> - Detail/edit/add use one tab-nested route plus modals — `app/(tabs)/InventoryDetails/[id].tsx`, `InventoryFormModal` (add/edit), `InventoryAdjustModal` (stock change) — instead of separate `app/inventory/[id].tsx` and `add.tsx` routes.
+> - Products are created on demand via `ProductController.findOrCreateByName` (type a name); barcode-driven add lands in Phase 7.
+> - Alert logic is a pure module (`lib/inventory/alerts.ts`) reused by badges/filter/counts, not a `useInventoryAlerts` hook.
+> - Expiration uses a `YYYY-MM-DD` text field (no native date picker) to avoid a native module + Android rebuild.
+> - Backend ("inventory-api") is **not** in this PR — per the MVP cutoff it ships with the Phase 8 sync transport.
 
 ### Goal
 Full inventory CRUD with expiration tracking, stock movement history, and smart alerts — working completely offline.
@@ -218,8 +226,9 @@ Full inventory CRUD with expiration tracking, stock movement history, and smart 
 | Screen | Route |
 |---|---|
 | Inventory list | `mobile/app/(tabs)/inventory.tsx` |
-| Item detail / edit | `mobile/app/inventory/[id].tsx` |
-| Add item | `mobile/app/inventory/add.tsx` |
+| Item detail + history | `mobile/app/(tabs)/InventoryDetails/[id].tsx` |
+| Add / edit item | `InventoryFormModal` (modal, no route) |
+| Adjust stock | `InventoryAdjustModal` (modal, no route) |
 
 ### Add / Edit Fields
 ```
@@ -242,13 +251,16 @@ Notes            — freeform
 | Out of Stock | `quantity <= 0` | Grayed-out card |
 
 ### Stock Movement Log
-Every quantity change writes a row to `movement_log`:
+Every quantity change writes a row to `inventory_movements` (append-only, synced):
 ```
-id, inventory_item_id, delta (+added / -consumed),
-reason (PURCHASE / CONSUMPTION / ADJUSTMENT / EXPIRED),
-notes, created_at
+id, inventory_item_id → inventory_items, delta (+added / -consumed),
+resulting_quantity, reason (initial / purchase / consume / waste / adjust),
+notes, + sync columns (server_id, sync_status, version,
+last_synced_at, created_at, updated_at, deleted_at)
 ```
-Displayed as a timeline in the item detail screen.
+Written on the opening balance (`initial`), form edits that change quantity
+(`adjust`), and explicit adjustments; shown as the history timeline on the item
+detail screen.
 
 ### Backend API Contracts
 ```
@@ -265,34 +277,41 @@ POST   /api/v1/products               create product
 GET    /api/v1/products/barcode/:code lookup by barcode
 ```
 
-### New Files
+### New / Updated Files (as built — mobile only)
 ```
-mobile/app/(tabs)/inventory.tsx           — fully implemented list
-mobile/app/inventory/[id].tsx             — detail / edit
-mobile/app/inventory/add.tsx              — add screen
-mobile/components/InventoryCard.tsx
-mobile/components/AlertBadge.tsx
-mobile/components/StockMovementLog.tsx
-mobile/controller/InventoryController.ts
-mobile/hooks/useInventory.ts              — React Query
-mobile/hooks/useInventoryAlerts.ts
-backend/src/routes/inventory.ts
-backend/src/routes/products.ts
-backend/src/services/InventoryService.ts
+shared/constants/inventory.ts             — storage locations, movement reasons, expiry window
+shared/validation/schemas.ts (updated)    — inventoryItem + adjustment Zod schemas
+shared/constants/sync.ts (updated)        — inventory_movements added to SYNCED_TABLES
+mobile/models/inventoryMovements.ts       — movement-log table
+mobile/models/inventoryItems.ts (updated) — StorageLocation imported from shared
+mobile/lib/sync/tableRegistry.ts (updated)— registers inventory_movements
+mobile/controller/InventoryController.ts  — sync-aware CRUD + movement log
+mobile/controller/ProductController.ts    — find-or-create product by name
+mobile/hooks/useInventory.ts              — React Query reads + create/update/adjust/delete
+mobile/lib/inventory/alerts.ts            — low-stock / expiry / out-of-stock rules
+mobile/lib/inventory/format.ts            — quantity/date display + input parsing
+mobile/app/(tabs)/inventory.tsx           — inventory list (filter bar, FAB)
+mobile/app/(tabs)/InventoryDetails/[id].tsx, _layout.tsx — detail + history
+mobile/components/inventory/*             — InventoryCard, InventoryFilterBar, AlertBadge,
+                                            MovementRow, OptionChips, InventoryFormModal,
+                                            InventoryAdjustModal, alertMeta
+mobile/drizzle/0001_low_the_santerians.sql — inventory_movements migration
 ```
+Deferred to Phase 8 (backend): `backend/src/routes/inventory.ts`, `products.ts`, `services/InventoryService.ts`.
 
 ### Dependencies
 - Phase 3 complete (offline schema with sync columns)
 
 ### Acceptance Criteria
-- Adding an item with airplane mode on: item appears in list, `sync_status = 'pending_create'`
-- Setting `min_quantity = 2`, reducing quantity to 1: low-stock badge appears on tab icon
-- Expiration date 3 days from now: expiring-soon badge appears
-- Deleting an item: movement_log entry written with reason `EXPIRED` or `ADJUSTMENT`
+_Implemented in code; `tsc --noEmit`, `eslint`, and `drizzle-kit generate` clean. On-device QA still pending._
+- Adding an item with airplane mode on: item appears in list, `sync_status = 'pending_create'` and a `sync_queue` entry is enqueued
+- Setting `min_quantity = 2`, reducing quantity to 1: low-stock badge appears (filter + card)
+- Expiration date within 7 days: expiring-soon badge appears
+- Adjusting quantity: an `inventory_movements` row is written with the chosen reason and resulting quantity
 
 ### Pull Requests
-- PR 6: `feat/inventory-ui` — all screens, components, hooks (SQLite only)
-- PR 7: `feat/inventory-api` — backend routes, Postgres schema, service layer
+- PR 6: `feat/inventory-management` — all screens, components, hooks, movement log (SQLite only) — GitHub PR #4 ✅
+- PR 7: `feat/inventory-api` — backend routes, Postgres schema, service layer (deferred to Phase 8)
 
 ---
 
@@ -649,8 +668,8 @@ Offline single-user app. No backend required.
 |---|---|---|
 | 1 | Monorepo restructure | 2d ✅ |
 | 2 | State management foundation | 3d ✅ |
-| 3 | Offline schema + SyncEngine | 5d |
-| 4 | Inventory management | 8d |
+| 3 | Offline schema + SyncEngine | 5d ✅ |
+| 4 | Inventory management | 8d ✅ (mobile; backend → Phase 8) |
 | 5 | Shopping list rewrite | 6d |
 | 7 | Barcode scanner | 4d |
 
@@ -690,8 +709,8 @@ Adds backend, authentication, cross-device sync, price comparison.
 | 3 | `feat/backend-scaffold` | 2 | Fastify, Postgres, Drizzle, health routes ✅ |
 | 4 | `feat/offline-schema` | 3 | New Drizzle schema + migrations |
 | 5 | `feat/sync-engine` | 3 | SyncEngine, useNetworkStatus |
-| 6 | `feat/inventory-ui` | 4 | Inventory screens + hooks (offline-only) |
-| 7 | `feat/inventory-api` | 4 | Backend inventory routes |
+| 6 | `feat/inventory-management` | 4 | Inventory screens, hooks, movement log (offline-only) — GitHub PR #4 ✅ |
+| 7 | `feat/inventory-api` | 4 | Backend inventory routes (deferred → Phase 8) |
 | 8 | `feat/shopping-list-rewrite` | 5 | Full list CRUD, remove stubs |
 | 9 | `feat/shopping-list-api` | 5 | Backend list routes |
 | 10 | `feat/price-comparison` | 6 | Stores, prices, comparison UI |
