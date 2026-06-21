@@ -29,6 +29,14 @@ export default function Inventory() {
     <SafeAreaView edges={["top"]} className="flex-1 bg-gray-50">
       <View className="flex-row items-center justify-between px-4 pt-3">
         <Text className="text-2xl font-bold text-gray-900">Inventory</Text>
+        <TouchableOpacity
+          onPress={() => router.push("/scan")}
+          activeOpacity={0.85}
+          className="flex-row items-center gap-2 rounded-full bg-primary-light px-4 py-2"
+        >
+          <FontAwesome name="barcode" size={16} color="#557C55" />
+          <Text className="font-semibold text-primary-dark">Scan</Text>
+        </TouchableOpacity>
       </View>
 
       <InventoryFilterBar

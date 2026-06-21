@@ -53,9 +53,12 @@ import { ProductCategory } from '@clay/shared/constants/categories';
 | `mobile/models/index.ts` | Schema exports (used by drizzle.config.ts) |
 | `mobile/controller/ShoppingListController.ts` | Sync-aware multi-list CRUD + items + inventory-alert restock |
 | `mobile/controller/InventoryController.ts` | Sync-aware inventory CRUD + movement log |
-| `mobile/controller/ProductController.ts` | Product catalog ops (find-or-create by name) |
+| `mobile/controller/ProductController.ts` | Product catalog ops (find-or-create by name **or barcode**) |
 | `mobile/models/inventoryMovements.ts` | Append-only inventory movement-log table |
 | `mobile/lib/inventory/alerts.ts` | Low-stock / expiry / out-of-stock alert rules |
+| `mobile/app/scan/index.tsx` | Barcode scan-flow orchestrator (scan → lookup → add to inventory/list) |
+| `mobile/components/scan/BarcodeScanner.tsx` | Reusable `expo-camera` scanner (permission, debounce, timeout) |
+| `mobile/hooks/useBarcodeLookup.ts` | Local barcode lookup + save-scanned-product mutations |
 | `mobile/hooks/useInventory.ts` | Inventory queries + create/update/adjust/delete mutations |
 | `mobile/hooks/useShoppingLists.ts` | Shopping-list queries + list/item/check/restock mutations |
 | `mobile/models/_syncColumns.ts` | Sync-metadata mixin spread into every synced table |
@@ -83,7 +86,7 @@ Color palette (sage green theme):
 
 See `mobile/tailwind.config.js` for full theme. Use NativeWind Tailwind classes in all components.
 
-## Current State (Phase 5 complete)
+## Current State (Phase 7 complete — MVP feature set offline-complete)
 
 - ✅ Monorepo structure
 - ✅ SQLite + Drizzle ORM foundation
@@ -96,8 +99,10 @@ See `mobile/tailwind.config.js` for full theme. Use NativeWind Tailwind classes 
 - ✅ Inventory management — full CRUD, smart alerts (low-stock/expiry/out-of-stock), movement log; sync-aware writes (`mobile/controller/InventoryController.ts`, `mobile/app/(tabs)/inventory.tsx` + `InventoryDetails/`, `mobile/components/inventory/`)
 - ✅ Tab navigation (Groceries, List, Inventory)
 - ✅ Shopping lists — DB-backed multi-list CRUD, freeform/checkable items, "Add low-stock items" restock from inventory alerts, bulk check/clear; sync-aware writes (`mobile/controller/ShoppingListController.ts`, `mobile/hooks/useShoppingLists.ts`, `mobile/app/(tabs)/list.tsx` + `ListDetails/`, `mobile/components/shopping/`)
-- 🔄 Groceries/product tab UI — still hardcoded (products are auto-created via inventory find-or-create; catalog screen lands later)
-- ❌ Backend API (auth, sync transport, feature routes) — not yet (Phase 8)
+- ✅ Barcode scanner — `expo-camera` scan flow (`mobile/app/scan/`, `mobile/components/scan/`), local SQLite barcode lookup, offline skeleton-product creation, add-to-inventory/list; remote Open Food Facts lookup deferred to Phase 8. **Requires a native rebuild** (`npx expo run:android`) for the camera module.
+- 🔄 Groceries/product tab UI — still hardcoded (products are auto-created via inventory find-or-create / barcode scan; catalog screen lands later)
+- ❌ Price comparison (Phase 6) — not started
+- ❌ Backend API (auth, sync transport, feature routes incl. barcode/Open Food Facts) — not yet (Phase 8)
 - ❌ Auth — not yet (Phase 8)
 
 ## Phase Checklist

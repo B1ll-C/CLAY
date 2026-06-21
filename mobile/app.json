@@ -50,6 +50,13 @@
             ]
           }
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "CLAY uses the camera to scan product barcodes.",
+          "recordAudioAndroid": false
+        }
       ]
     ],
     "experiments": {
