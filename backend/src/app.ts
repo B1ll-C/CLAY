@@ -1,5 +1,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { checkDbConnection } from './db/index.js';
+import { registerErrorHandler } from './lib/errors.js';
+import { authRoutes } from './routes/auth.js';
 
 /**
  * Builds the Fastify application with all routes registered. Kept separate from
@@ -9,6 +11,8 @@ import { checkDbConnection } from './db/index.js';
  */
 export function buildApp(): FastifyInstance {
   const app = Fastify({ logger: true });
+
+  registerErrorHandler(app);
 
   app.get('/health', async () => {
     return { status: 'ok', version: '0.1.0', uptime: process.uptime() };
@@ -22,6 +26,8 @@ export function buildApp(): FastifyInstance {
     reply.code(result.ok ? 200 : 503);
     return { status: result.ok ? 'ok' : 'unavailable', ...result };
   });
+
+  app.register(authRoutes);
 
   return app;
 }
