@@ -102,8 +102,10 @@ See `mobile/tailwind.config.js` for full theme. Use NativeWind Tailwind classes 
 - ✅ Barcode scanner — `expo-camera` scan flow (`mobile/app/scan/`, `mobile/components/scan/`), local SQLite barcode lookup, offline skeleton-product creation, add-to-inventory/list; remote Open Food Facts lookup deferred to Phase 8. **Requires a native rebuild** (`npx expo run:android`) for the camera module.
 - ✅ Price comparison — stores + per-product price tracking, side-by-side comparison, "cheapest basket" optimizer (`minimize_cost`/`minimize_trips`); sync-aware writes (`mobile/controller/StoreController.ts`, `mobile/controller/PriceController.ts`, `mobile/hooks/useStores.ts`, `mobile/hooks/usePrices.ts`, `mobile/app/(tabs)/prices.tsx` + `PricesDetails/`, `mobile/components/pricing/`). Backend price/store routes deferred to Phase 8.
 - 🔄 Groceries/product tab UI — still hardcoded (products are auto-created via inventory find-or-create / barcode scan; catalog screen lands later)
-- ❌ Backend API (auth, sync transport, feature routes incl. barcode/Open Food Facts/pricing) — not yet (Phase 8)
-- ❌ Auth — not yet (Phase 8)
+- ✅ Backend Postgres schema — `users`, `sync_log` + `user_id`-owned domain tables, docker-compose for local Postgres+Redis (`backend/src/db/schema/`, Phase 8 PR #8)
+- ✅ Auth — JWT access tokens + Redis-backed opaque refresh tokens, bcrypt, `requireAuth` middleware (`backend/src/services/AuthService.ts`, `backend/src/middleware/auth.ts`, Phase 8 PR #9)
+- 🔄 Sync API — generic push/pull routes (`backend/src/routes/sync.ts`, `backend/src/services/SyncService.ts`) in progress, not yet merged (Phase 8)
+- ❌ Barcode API (Open Food Facts + Redis cache), background workers, mobile auth/sync wiring — not yet (Phase 8)
 
 ## Phase Checklist
 

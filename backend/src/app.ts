@@ -2,6 +2,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { checkDbConnection } from './db/index.js';
 import { registerErrorHandler } from './lib/errors.js';
 import { authRoutes } from './routes/auth.js';
+import { syncRoutes } from './routes/sync.js';
 
 /**
  * Builds the Fastify application with all routes registered. Kept separate from
@@ -28,6 +29,7 @@ export function buildApp(): FastifyInstance {
   });
 
   app.register(authRoutes);
+  app.register(syncRoutes);
 
   return app;
 }
