@@ -1,8 +1,16 @@
 import ProductCard from "@/components/ProductCard";
+import { useAuthStore } from "@/store/authStore";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Modal, ScrollView, Text, TextInput, View } from "react-native";
+import {
+  Modal,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 function Product() {
@@ -79,6 +87,7 @@ function Product() {
     item.name.toLowerCase().includes(search.toLowerCase())
   );
   const router = useRouter();
+  const logout = useAuthStore((s) => s.logout);
 
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -127,9 +136,17 @@ function Product() {
       >
         <View className="flex-1 items-center justify-center bg-black/50">
           <View className="w-[80%] p-6 bg-white rounded-2xl shadow-lg">
-            <Text className="mb-4 text-center text-lg font-semibold">
-              Transparent Modal 🎉
-            </Text>
+            <TouchableOpacity
+              className="py-3"
+              onPress={() => {
+                setModalVisible(false);
+                logout();
+              }}
+            >
+              <Text className="text-center text-lg font-semibold text-red-500">
+                Log Out
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
