@@ -401,8 +401,17 @@ _Implemented in code; `tsc --noEmit` and `eslint` clean. On-device QA still pend
 
 ## Phase 6 — Price Comparison Module
 
-**Status:** ⬜ Not started
+**Status:** ✅ Mobile complete (offline-only) — `feat/price-comparison` (GitHub PR #7 → `develop`); backend price/store routes deferred to Phase 8
 **Effort:** 6 days (4 mobile + 2 backend)
+
+> **As built — deviations from the original plan below:**
+> - **New 4th tab** (`app/(tabs)/prices.tsx` + hidden `PricesDetails/[id]`) mirrors the Inventory/List hub convention, rather than the standalone `app/prices/` + `app/stores/` routes in the original plan. Store management is a modal off the hub header, not its own route.
+> - **"Cheapest basket" surfaces on the existing list screen** (`ListDetails/[id].tsx`, button next to "Add low-stock items") instead of a separate optimizer screen/hook — `useShoppingOptimizer.ts` was folded into `getCheapestBasket` in `PriceController.ts`.
+> - **No new schema/migration for the tables themselves** — `stores`/`store_prices` already existed from Phase 3 and were already in `SYNCED_TABLES`. Migration 0002 only adds a partial unique index on `store_prices(product_id, store_id)` scoped to live rows, so a soft-deleted price can be re-added without a permanent unique-constraint block.
+> - **Two basket modes implemented as planned**: `minimize_cost` (assigns each item to its own cheapest store) and `minimize_trips` (ranks stores by coverage first, subtotal second) — see `BASKET_MODES`/`BasketMode` in `shared/constants/pricing.ts`. Items with no linked product or no tracked price are reported separately with a reason rather than silently dropped.
+> - **Promo-vs-regular pricing**: `storePriceInputSchema` refines that a promotion price must be strictly less than the regular price; `lib/pricing/effectivePrice.ts` resolves which applies, reused by both the comparison view and the basket algorithm.
+> - **Store deletion cascades as an explicit soft-delete** to that store's live prices in `StoreController`, since SQLite FK cascade only fires on hard delete.
+> - Verified via `tsc --noEmit` + `expo lint` only, matching the Phase 4/5/7 acceptance bar — no on-device QA yet.
 
 ### Goal
 Track product prices at multiple configurable stores and find the cheapest way to complete a shopping list.
@@ -466,8 +475,7 @@ backend/src/services/OptimizerService.ts
 - Phase 3 (store_prices schema), Phase 5 (shopping lists to optimize)
 
 ### Pull Requests
-- PR 10: `feat/price-comparison` — stores, prices, comparison UI
-- PR 11: `feat/shopping-optimizer` — basket optimization algorithm + UI
+- PR 10 (as built: GitHub PR #7): `feat/price-comparison` — stores, prices, comparison UI, and basket optimization (folded into one PR; PR 11 was not split out) ✅
 
 ---
 

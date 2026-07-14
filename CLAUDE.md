@@ -86,7 +86,7 @@ Color palette (sage green theme):
 
 See `mobile/tailwind.config.js` for full theme. Use NativeWind Tailwind classes in all components.
 
-## Current State (Phase 7 complete — MVP feature set offline-complete)
+## Current State (Phases 1-7 complete — MVP + Phase 6 offline feature set complete)
 
 - ✅ Monorepo structure
 - ✅ SQLite + Drizzle ORM foundation
@@ -97,12 +97,12 @@ See `mobile/tailwind.config.js` for full theme. Use NativeWind Tailwind classes 
 - ✅ SyncEngine skeleton — push/pull/conflict + outbox (`mobile/lib/sync/`, `mobile/controller/SyncController.ts`); offline-only until Phase 8 transport
 - ✅ `useNetworkStatus` + `useSyncStatus` hooks
 - ✅ Inventory management — full CRUD, smart alerts (low-stock/expiry/out-of-stock), movement log; sync-aware writes (`mobile/controller/InventoryController.ts`, `mobile/app/(tabs)/inventory.tsx` + `InventoryDetails/`, `mobile/components/inventory/`)
-- ✅ Tab navigation (Groceries, List, Inventory)
+- ✅ Tab navigation (Groceries, List, Inventory, Prices)
 - ✅ Shopping lists — DB-backed multi-list CRUD, freeform/checkable items, "Add low-stock items" restock from inventory alerts, bulk check/clear; sync-aware writes (`mobile/controller/ShoppingListController.ts`, `mobile/hooks/useShoppingLists.ts`, `mobile/app/(tabs)/list.tsx` + `ListDetails/`, `mobile/components/shopping/`)
 - ✅ Barcode scanner — `expo-camera` scan flow (`mobile/app/scan/`, `mobile/components/scan/`), local SQLite barcode lookup, offline skeleton-product creation, add-to-inventory/list; remote Open Food Facts lookup deferred to Phase 8. **Requires a native rebuild** (`npx expo run:android`) for the camera module.
+- ✅ Price comparison — stores + per-product price tracking, side-by-side comparison, "cheapest basket" optimizer (`minimize_cost`/`minimize_trips`); sync-aware writes (`mobile/controller/StoreController.ts`, `mobile/controller/PriceController.ts`, `mobile/hooks/useStores.ts`, `mobile/hooks/usePrices.ts`, `mobile/app/(tabs)/prices.tsx` + `PricesDetails/`, `mobile/components/pricing/`). Backend price/store routes deferred to Phase 8.
 - 🔄 Groceries/product tab UI — still hardcoded (products are auto-created via inventory find-or-create / barcode scan; catalog screen lands later)
-- ❌ Price comparison (Phase 6) — not started
-- ❌ Backend API (auth, sync transport, feature routes incl. barcode/Open Food Facts) — not yet (Phase 8)
+- ❌ Backend API (auth, sync transport, feature routes incl. barcode/Open Food Facts/pricing) — not yet (Phase 8)
 - ❌ Auth — not yet (Phase 8)
 
 ## Phase Checklist
