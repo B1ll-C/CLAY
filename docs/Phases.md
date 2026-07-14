@@ -574,8 +574,15 @@ _Implemented in code; `tsc --noEmit` and `expo lint` clean. On-device QA still p
 
 ## Phase 8 — Backend Modernization
 
-**Status:** ⬜ Not started (scaffold only)
-**Effort:** 6 days
+**Status:** 🔄 In progress — schema and auth merged to `develop`; sync API in progress
+**Effort:** 6 days (original estimate; actual scope spans 6 PRs, see below)
+
+> **As built — deviations from the original plan below:**
+> - **Scope split into 6 sequential PRs** instead of the 2 listed under "Pull Requests": `feat/backend-schema`, `feat/auth`, `feat/sync-api`, `feat/barcode-api`, `feat/background-workers`, `feat/mobile-auth-sync`. Each merges to `develop` on its own, mirroring the one-PR-per-slice convention used since Phase 4.
+> - **`products` stays shared/global, no `user_id`** — every other domain table gets a direct `user_id` FK. Two users scanning the same barcode reuse one product row.
+> - **Refresh tokens are opaque random strings in Redis** (`refresh:<token> → userId`), not JWTs — makes logout/rotation a plain Redis delete rather than a signature-revocation scheme.
+> - **`SyncWorker` dropped from scope** — sync push is applied synchronously inline in the route handler (`SyncService.applyPush`), not queued to a worker, since the mobile `SyncEngine` needs `applied`/`conflict` results in the same HTTP response. Only `CleanupWorker` remains under Background Workers.
+> - `feat/backend-schema` (GitHub PR #8) and `feat/auth` (GitHub PR #9) are merged; both are `tsc --noEmit` clean but have not yet been exercised against a live Postgres/Redis (Docker Desktop unavailable in the dev environment both times) — worth a live `docker compose up` + curl pass once available, not blocking further work.
 
 ### Goal
 Production-ready backend with authentication, JWT sessions, sync endpoint, and background workers.
@@ -644,8 +651,12 @@ backend/.env.example                      — all required env vars documented
 - Phase 2 (Fastify scaffold), Phases 4–7 (all routes to protect)
 
 ### Pull Requests
-- PR 14: `feat/auth` — register/login/JWT/refresh + SecureStore on mobile
-- PR 15: `feat/background-workers` — BullMQ + SyncWorker + CleanupWorker
+- PR 14 (as built: GitHub PR #8): `feat/backend-schema` — Postgres schema (users, sync_log, domain tables), docker-compose ✅
+- PR 15 (as built: GitHub PR #9): `feat/auth` — register/login/JWT/refresh + Redis-backed refresh tokens ✅
+- PR 16: `feat/sync-api` — generic push/pull routes implementing the `shared/validation/sync.ts` wire contract 🔄
+- PR 17: `feat/barcode-api` — Open Food Facts lookup + Redis cache
+- PR 18: `feat/background-workers` — BullMQ `CleanupWorker` only (nightly soft-delete purge)
+- PR 19: `feat/mobile-auth-sync` — expo-secure-store, login/register screens, HTTP SyncTransport, real NetInfo
 
 ---
 

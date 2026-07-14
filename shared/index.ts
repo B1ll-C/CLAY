@@ -7,3 +7,4 @@ export * from './constants/sync';
 export * from './validation/auth';
 export * from './validation/schemas';
 export * from './validation/sync';
+export * from './validation/syncPayloads';
