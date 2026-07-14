@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `idx_store_prices_product_store` ON `store_prices` (`product_id`,`store_id`) WHERE "store_prices"."deleted_at" is null;

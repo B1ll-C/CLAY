@@ -15,6 +15,13 @@
       "when": 1782019152592,
       "tag": "0001_low_the_santerians",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784026124578,
+      "tag": "0002_public_hannibal_king",
+      "breakpoints": true
     }
   ]
 }
