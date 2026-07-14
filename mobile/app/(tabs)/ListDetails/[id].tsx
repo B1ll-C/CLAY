@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { CheapestBasketModal } from "@/components/pricing/CheapestBasketModal";
 import { ListFormModal } from "@/components/shopping/ListFormModal";
 import { ListItemFormModal } from "@/components/shopping/ListItemFormModal";
 import { ShoppingItemRow } from "@/components/shopping/ShoppingItemRow";
@@ -43,6 +44,7 @@ export default function ListDetail() {
   const [renameOpen, setRenameOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ShoppingListItemRow | null>(null);
+  const [basketOpen, setBasketOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -156,6 +158,27 @@ export default function ListDetail() {
               </Text>
             </TouchableOpacity>
 
+            <TouchableOpacity
+              onPress={() => setBasketOpen(true)}
+              disabled={items.length === 0}
+              className={`mt-2 flex-row items-center justify-center gap-2 rounded-xl border py-2.5 ${
+                items.length === 0 ? "border-gray-200" : "border-primary"
+              }`}
+            >
+              <FontAwesome
+                name="balance-scale"
+                size={14}
+                color={items.length === 0 ? "#D1D5DB" : "#557C55"}
+              />
+              <Text
+                className={`font-semibold ${
+                  items.length === 0 ? "text-gray-300" : "text-primary-dark"
+                }`}
+              >
+                Cheapest basket
+              </Text>
+            </TouchableOpacity>
+
             {items.length > 0 ? (
               <View className="mt-3 flex-row gap-3">
                 <TouchableOpacity
@@ -220,6 +243,11 @@ export default function ListDetail() {
         listId={id}
         initial={editing ?? undefined}
         onClose={() => setFormOpen(false)}
+      />
+      <CheapestBasketModal
+        visible={basketOpen}
+        listId={id}
+        onClose={() => setBasketOpen(false)}
       />
     </SafeAreaView>
   );

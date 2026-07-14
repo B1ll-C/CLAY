@@ -86,3 +86,35 @@ export const inventoryAdjustmentInputSchema = z.object({
 export type InventoryAdjustmentInput = z.infer<
   typeof inventoryAdjustmentInputSchema
 >;
+
+/** Create / edit a store. */
+export const storeInputSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(120),
+  address: z.string().trim().max(255).optional(),
+});
+export type StoreInput = z.infer<typeof storeInputSchema>;
+
+/**
+ * Record / edit a product's price at a store. `recordPrice` always upserts
+ * against the `(product_id, store_id)` unique index, so this input doubles as
+ * both the create and update shape. `promotionPrice`, when set, must be
+ * cheaper than `price` — a "promotion" that isn't a discount is a data error.
+ */
+export const storePriceInputSchema = z
+  .object({
+    productId: z.number().int().positive(),
+    storeId: z.number().int().positive(),
+    price: z.number().positive("Price must be greater than zero"),
+    unit: unitSchema.nullable().optional(),
+    promotionPrice: z.number().positive().nullable().optional(),
+    promotionExpiresAt: z.date().nullable().optional(),
+  })
+  .refine(
+    (input) =>
+      input.promotionPrice == null || input.promotionPrice < input.price,
+    {
+      message: "Promotion price must be less than the regular price",
+      path: ["promotionPrice"],
+    },
+  );
+export type StorePriceInput = z.infer<typeof storePriceInputSchema>;

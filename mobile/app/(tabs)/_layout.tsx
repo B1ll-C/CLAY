@@ -39,6 +39,15 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="prices"
+        options={{
+          title: "Prices",
+          tabBarIcon: ({ color, size }) => (
+            <FontAwesome name="balance-scale" color={color} size={size} />
+          ),
+        }}
+      />
 
       <Tabs.Screen
         name="ProductDetails"
@@ -56,6 +65,13 @@ export default function TabLayout() {
 
       <Tabs.Screen
         name="ListDetails"
+        options={{
+          href: null,
+        }}
+      />
+
+      <Tabs.Screen
+        name="PricesDetails"
         options={{
           href: null,
         }}
