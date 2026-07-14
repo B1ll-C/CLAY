@@ -2,6 +2,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { checkDbConnection } from './db/index.js';
 import { registerErrorHandler } from './lib/errors.js';
 import { authRoutes } from './routes/auth.js';
+import { productRoutes } from './routes/products.js';
 import { syncRoutes } from './routes/sync.js';
 
 /**
@@ -30,6 +31,7 @@ export function buildApp(): FastifyInstance {
 
   app.register(authRoutes);
   app.register(syncRoutes);
+  app.register(productRoutes);
 
   return app;
 }
