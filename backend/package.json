@@ -11,13 +11,17 @@
   },
   "dependencies": {
     "@clay/shared": "*",
+    "bcrypt": "^6.0.0",
     "dotenv": "^16.4.0",
     "drizzle-orm": "^0.44.5",
     "fastify": "^5.3.3",
+    "ioredis": "^5.11.1",
+    "jose": "^6.2.3",
     "postgres": "^3.4.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
     "@types/node": "^22.15.30",
     "drizzle-kit": "^0.31.4",
     "tsx": "^4.19.4",
