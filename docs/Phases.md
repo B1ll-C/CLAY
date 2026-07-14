@@ -473,8 +473,19 @@ backend/src/services/OptimizerService.ts
 
 ## Phase 7 — Barcode Scanner
 
-**Status:** ⬜ Not started
+**Status:** ✅ Mobile complete (offline-only) — `feat/barcode-scanner`; backend lookup (Open Food Facts) deferred to Phase 8
 **Effort:** 4 days (2 mobile + 2 backend)
+
+> **As built — deviations from the original plan below:**
+> - **No schema or migration changes** — the Phase 3 `products` table already carries a `barcode` column. Phase 7 is `expo-camera` + controller + hooks + UI only.
+> - Adds the **first native dependency** (`expo-camera ~16.1.11`) and an `expo-camera` config plugin (camera permission) in `app.json`. This requires a native rebuild (`npx expo run:android`) — the YYYY-MM-DD-text-field / no-native-module workarounds from Phases 4–5 don't apply because a scanner _is_ a camera.
+> - API is `CameraView` + `useCameraPermissions` from `expo-camera` (the `onBarcodeScanned` + `barcodeScannerSettings` props), not a `BarcodeScanner` prop — the latter name in the original plan predates the SDK 53 surface.
+> - The reusable camera component lives at **`components/scan/BarcodeScanner.tsx`** (folder-per-feature, like `components/inventory/*`), not top-level `components/BarcodeScanner.tsx`.
+> - The scan screen is a **state-machine orchestrator** (`app/scan/index.tsx`) driving four sheets/modals: `ScanResultSheet`, `UnknownProductModal`, `ListPickerModal`, and the reused `InventoryFormModal` (now accepting a `prefill` + `onSaved`). These extra components aren't in the original file list but are the natural decomposition of the documented scan flow.
+> - **Local-only lookup this PR.** `useBarcodeLookup` resolves against local SQLite (`ProductController.findByBarcode`); the online Open Food Facts fallback (PR 13) ships with the Phase 8 backend transport, matching how Phases 4–5 deferred their backends. Unknown codes save a skeleton product (`findOrCreateByBarcode`, `sync_status = 'pending_create'`) via manual name entry.
+> - **Add-to-list picks an existing list only** (lists are created in the List tab); an empty state points there. Drag/inline-create were out of scope, consistent with the Phase 5 trims.
+> - Entry point is a **"Scan" button in the Inventory header**. A catalog-tab entry point lands with the Groceries rewrite (still hardcoded).
+> - Edge cases handled: single-shot debounce (one `onScanned` per physical barcode), 10s no-read timeout → manual-entry fallback, and check-then-insert barcode de-dup in `findOrCreateByBarcode`. Multi-barcode "store all per product" (array/junction) was **not** built — `products.barcode` stays single-valued for the MVP.
 
 ### Goal
 Scan a product barcode anywhere in the app to instantly look up, add, or update a product — with full offline fallback.
@@ -521,21 +532,35 @@ async lookupBarcode(barcode: string): Promise<Product | null>
 | Same barcode scanned twice | Check-then-insert with barcode uniqueness constraint |
 | Product has multiple barcodes | Store all barcodes per product (array column or junction table) |
 
-### New Files
+### New / Updated Files (as built — mobile only)
 ```
-mobile/app/scan/index.tsx                 — scanner screen
-mobile/components/BarcodeScanner.tsx      — reusable camera component
-mobile/hooks/useBarcodeLookup.ts          — local-then-remote lookup
-backend/src/services/BarcodeService.ts
-backend/src/routes/products.ts            — GET /api/v1/products/barcode/:code
+mobile/app.json (updated)                  — expo-camera config plugin (camera permission)
+mobile/package.json (updated)              — expo-camera ~16.1.11 dependency
+mobile/controller/ProductController.ts (updated) — findByBarcode + findOrCreateByBarcode (skeleton)
+mobile/hooks/useBarcodeLookup.ts           — local lookup + useSaveScannedProduct mutations
+mobile/components/scan/BarcodeScanner.tsx  — reusable camera (permission, reticle, debounce, timeout)
+mobile/components/scan/ScanResultSheet.tsx — resolved-product actions (inventory / list / scan again)
+mobile/components/scan/UnknownProductModal.tsx — manual name entry → skeleton product
+mobile/components/scan/ListPickerModal.tsx — add scanned product to an existing list
+mobile/components/inventory/InventoryFormModal.tsx (updated) — prefill + onSaved props
+mobile/app/scan/index.tsx                  — scan-flow orchestrator screen
+mobile/app/(tabs)/inventory.tsx (updated)  — "Scan" header button
 ```
+Deferred to Phase 8 (backend): `backend/src/services/BarcodeService.ts`, `backend/src/routes/products.ts` (`GET /api/v1/products/barcode/:code`) + Open Food Facts integration.
 
 ### Dependencies
 - Phase 3 (products table with barcode column), Phase 4 (inventory add flow)
 
+### Acceptance Criteria
+_Implemented in code; `tsc --noEmit` and `expo lint` clean. On-device QA still pending (requires a native rebuild for the camera module)._
+- Scanning a code already in the local catalog opens the result sheet without any network
+- Scanning an unknown code (or a 10s no-read) prompts manual entry and saves a product with `sync_status = 'pending_create'` + a `sync_queue` entry
+- "Add to inventory" opens the inventory form pre-seeded with the scanned product's name/brand/category
+- Re-scanning the same code resolves to the same catalog row (no duplicate product)
+
 ### Pull Requests
-- PR 12: `feat/barcode-scanner` — camera screen, local lookup, offline queuing
-- PR 13: `feat/barcode-api` — backend lookup + Open Food Facts integration
+- PR 12: `feat/barcode-scanner` — camera screen, local lookup, offline skeleton creation (SQLite only) ✅
+- PR 13: `feat/barcode-api` — backend lookup + Open Food Facts (deferred to Phase 8) integration
 
 ---
 

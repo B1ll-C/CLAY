@@ -36,6 +36,21 @@ interface InventoryFormModalProps {
   onClose: () => void;
   /** Present for edit; absent for a new item. */
   initial?: InventoryItemView;
+  /**
+   * Seed values for a brand-new item (e.g. from a barcode scan). Ignored in edit
+   * mode. The name is resolved to the existing scanned product via find-or-create
+   * on save, so the barcode stays attached to that one catalog row.
+   */
+  prefill?: {
+    productName: string;
+    brand?: string | null;
+    category?: ProductCategory | null;
+  };
+  /**
+   * Called instead of `onClose` after a successful save (lets a host flow, like
+   * the scanner, route away rather than just dismiss).
+   */
+  onSaved?: () => void;
 }
 
 /** Labeled form field wrapper. */
@@ -60,6 +75,8 @@ export function InventoryFormModal({
   visible,
   onClose,
   initial,
+  prefill,
+  onSaved,
 }: InventoryFormModalProps) {
   const isEdit = initial != null;
   const createItem = useCreateInventoryItem();
@@ -82,9 +99,9 @@ export function InventoryFormModal({
   useEffect(() => {
     if (!visible) return;
     setError(null);
-    setName(initial?.product?.name ?? "");
-    setBrand(initial?.product?.brand ?? "");
-    setCategory(initial?.product?.category ?? null);
+    setName(initial?.product?.name ?? prefill?.productName ?? "");
+    setBrand(initial?.product?.brand ?? prefill?.brand ?? "");
+    setCategory(initial?.product?.category ?? prefill?.category ?? null);
     setQuantity(initial ? String(initial.quantity) : "");
     setUnit(initial?.unit ?? null);
     setLocation(initial?.location ?? "pantry");
@@ -92,7 +109,7 @@ export function InventoryFormModal({
     setCostPerUnit(initial?.costPerUnit != null ? String(initial.costPerUnit) : "");
     setExpiration(toDateInput(initial?.expirationDate));
     setNotes(initial?.notes ?? "");
-  }, [visible, initial]);
+  }, [visible, initial, prefill]);
 
   function handleSave() {
     const qty = parseNumber(quantity) ?? 0;
@@ -132,7 +149,7 @@ export function InventoryFormModal({
     }
 
     const onDone = {
-      onSuccess: () => onClose(),
+      onSuccess: () => (onSaved ?? onClose)(),
       onError: (e: unknown) =>
         setError(e instanceof Error ? e.message : "Failed to save"),
     };
