@@ -66,6 +66,7 @@ import { ProductCategory } from '@clay/shared/constants/categories';
 | `mobile/controller/SyncController.ts` | `sync_queue` outbox DB operations |
 | `mobile/drizzle/` | Generated migration files — do not edit manually |
 | `backend/src/index.ts` | Fastify server entry point |
+| `backend/src/services/BarcodeService.ts` | Barcode lookup: Redis cache → Postgres `products` → Open Food Facts fallback |
 | `shared/types/shopping.ts` | Shared TypeScript types |
 
 ## Database
@@ -104,8 +105,9 @@ See `mobile/tailwind.config.js` for full theme. Use NativeWind Tailwind classes 
 - 🔄 Groceries/product tab UI — still hardcoded (products are auto-created via inventory find-or-create / barcode scan; catalog screen lands later)
 - ✅ Backend Postgres schema — `users`, `sync_log` + `user_id`-owned domain tables, docker-compose for local Postgres+Redis (`backend/src/db/schema/`, Phase 8 PR #8)
 - ✅ Auth — JWT access tokens + Redis-backed opaque refresh tokens, bcrypt, `requireAuth` middleware (`backend/src/services/AuthService.ts`, `backend/src/middleware/auth.ts`, Phase 8 PR #9)
-- 🔄 Sync API — generic push/pull routes (`backend/src/routes/sync.ts`, `backend/src/services/SyncService.ts`) in progress, not yet merged (Phase 8)
-- ❌ Barcode API (Open Food Facts + Redis cache), background workers, mobile auth/sync wiring — not yet (Phase 8)
+- ✅ Sync API — generic push/pull routes (`backend/src/routes/sync.ts`, `backend/src/services/SyncService.ts`) (Phase 8 PR #10)
+- 🔄 Barcode API — `GET /api/v1/products/barcode/:code`, Redis cache → Postgres → Open Food Facts fallback (`backend/src/routes/products.ts`, `backend/src/services/BarcodeService.ts`) in progress, not yet merged (Phase 8)
+- ❌ Background workers, mobile auth/sync wiring — not yet (Phase 8)
 
 ## Phase Checklist
 

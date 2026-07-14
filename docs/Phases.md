@@ -490,7 +490,7 @@ backend/src/services/OptimizerService.ts
 > - API is `CameraView` + `useCameraPermissions` from `expo-camera` (the `onBarcodeScanned` + `barcodeScannerSettings` props), not a `BarcodeScanner` prop — the latter name in the original plan predates the SDK 53 surface.
 > - The reusable camera component lives at **`components/scan/BarcodeScanner.tsx`** (folder-per-feature, like `components/inventory/*`), not top-level `components/BarcodeScanner.tsx`.
 > - The scan screen is a **state-machine orchestrator** (`app/scan/index.tsx`) driving four sheets/modals: `ScanResultSheet`, `UnknownProductModal`, `ListPickerModal`, and the reused `InventoryFormModal` (now accepting a `prefill` + `onSaved`). These extra components aren't in the original file list but are the natural decomposition of the documented scan flow.
-> - **Local-only lookup this PR.** `useBarcodeLookup` resolves against local SQLite (`ProductController.findByBarcode`); the online Open Food Facts fallback (PR 13) ships with the Phase 8 backend transport, matching how Phases 4–5 deferred their backends. Unknown codes save a skeleton product (`findOrCreateByBarcode`, `sync_status = 'pending_create'`) via manual name entry.
+> - **Local-only lookup this PR.** `useBarcodeLookup` resolves against local SQLite (`ProductController.findByBarcode`); the online Open Food Facts fallback ships with the Phase 8 backend transport (`feat/barcode-api`, PR 17), matching how Phases 4–5 deferred their backends. Unknown codes save a skeleton product (`findOrCreateByBarcode`, `sync_status = 'pending_create'`) via manual name entry.
 > - **Add-to-list picks an existing list only** (lists are created in the List tab); an empty state points there. Drag/inline-create were out of scope, consistent with the Phase 5 trims.
 > - Entry point is a **"Scan" button in the Inventory header**. A catalog-tab entry point lands with the Groceries rewrite (still hardcoded).
 > - Edge cases handled: single-shot debounce (one `onScanned` per physical barcode), 10s no-read timeout → manual-entry fallback, and check-then-insert barcode de-dup in `findOrCreateByBarcode`. Multi-barcode "store all per product" (array/junction) was **not** built — `products.barcode` stays single-valued for the MVP.
@@ -574,7 +574,7 @@ _Implemented in code; `tsc --noEmit` and `expo lint` clean. On-device QA still p
 
 ## Phase 8 — Backend Modernization
 
-**Status:** 🔄 In progress — schema and auth merged to `develop`; sync API in progress
+**Status:** 🔄 In progress — schema, auth, and sync API merged to `develop`; barcode API in progress
 **Effort:** 6 days (original estimate; actual scope spans 6 PRs, see below)
 
 > **As built — deviations from the original plan below:**
@@ -582,7 +582,8 @@ _Implemented in code; `tsc --noEmit` and `expo lint` clean. On-device QA still p
 > - **`products` stays shared/global, no `user_id`** — every other domain table gets a direct `user_id` FK. Two users scanning the same barcode reuse one product row.
 > - **Refresh tokens are opaque random strings in Redis** (`refresh:<token> → userId`), not JWTs — makes logout/rotation a plain Redis delete rather than a signature-revocation scheme.
 > - **`SyncWorker` dropped from scope** — sync push is applied synchronously inline in the route handler (`SyncService.applyPush`), not queued to a worker, since the mobile `SyncEngine` needs `applied`/`conflict` results in the same HTTP response. Only `CleanupWorker` remains under Background Workers.
-> - `feat/backend-schema` (GitHub PR #8) and `feat/auth` (GitHub PR #9) are merged; both are `tsc --noEmit` clean but have not yet been exercised against a live Postgres/Redis (Docker Desktop unavailable in the dev environment both times) — worth a live `docker compose up` + curl pass once available, not blocking further work.
+> - **`feat/barcode-api`'s `BarcodeService.lookup` checks Redis before Postgres**, not after — a resolved barcode is cached on first Open Food Facts hit, so a repeat scan is served from Redis without a DB round trip; an unresolved product-name-only OFF record still leaves `category` unset since OFF's free-text categories don't map onto the fixed `PRODUCT_CATEGORIES` enum.
+> - `feat/backend-schema` (GitHub PR #8), `feat/auth` (GitHub PR #9), and `feat/sync-api` (GitHub PR #10) are merged; all are `tsc --noEmit` clean but none have yet been exercised against a live Postgres/Redis (Docker Desktop unavailable in the dev environment every time) — worth a live `docker compose up` + curl/push-pull pass once available, not blocking further work. `feat/barcode-api` hits the same gap: `app.inject()` confirms auth gating and the error handler, but no live OFF/Redis/Postgres round trip yet.
 
 ### Goal
 Production-ready backend with authentication, JWT sessions, sync endpoint, and background workers.
@@ -653,8 +654,8 @@ backend/.env.example                      — all required env vars documented
 ### Pull Requests
 - PR 14 (as built: GitHub PR #8): `feat/backend-schema` — Postgres schema (users, sync_log, domain tables), docker-compose ✅
 - PR 15 (as built: GitHub PR #9): `feat/auth` — register/login/JWT/refresh + Redis-backed refresh tokens ✅
-- PR 16: `feat/sync-api` — generic push/pull routes implementing the `shared/validation/sync.ts` wire contract 🔄
-- PR 17: `feat/barcode-api` — Open Food Facts lookup + Redis cache
+- PR 16 (as built: GitHub PR #10): `feat/sync-api` — generic push/pull routes implementing the `shared/validation/sync.ts` wire contract ✅
+- PR 17: `feat/barcode-api` — Open Food Facts lookup + Redis cache 🔄
 - PR 18: `feat/background-workers` — BullMQ `CleanupWorker` only (nightly soft-delete purge)
 - PR 19: `feat/mobile-auth-sync` — expo-secure-store, login/register screens, HTTP SyncTransport, real NetInfo
 
