@@ -574,7 +574,7 @@ _Implemented in code; `tsc --noEmit` and `expo lint` clean. On-device QA still p
 
 ## Phase 8 — Backend Modernization
 
-**Status:** 🔄 In progress — schema, auth, and sync API merged to `develop`; barcode API in progress
+**Status:** 🔄 In progress — schema, auth, sync API, and barcode API merged to `develop`; background workers in progress
 **Effort:** 6 days (original estimate; actual scope spans 6 PRs, see below)
 
 > **As built — deviations from the original plan below:**
@@ -583,7 +583,8 @@ _Implemented in code; `tsc --noEmit` and `expo lint` clean. On-device QA still p
 > - **Refresh tokens are opaque random strings in Redis** (`refresh:<token> → userId`), not JWTs — makes logout/rotation a plain Redis delete rather than a signature-revocation scheme.
 > - **`SyncWorker` dropped from scope** — sync push is applied synchronously inline in the route handler (`SyncService.applyPush`), not queued to a worker, since the mobile `SyncEngine` needs `applied`/`conflict` results in the same HTTP response. Only `CleanupWorker` remains under Background Workers.
 > - **`feat/barcode-api`'s `BarcodeService.lookup` checks Redis before Postgres**, not after — a resolved barcode is cached on first Open Food Facts hit, so a repeat scan is served from Redis without a DB round trip; an unresolved product-name-only OFF record still leaves `category` unset since OFF's free-text categories don't map onto the fixed `PRODUCT_CATEGORIES` enum.
-> - `feat/backend-schema` (GitHub PR #8), `feat/auth` (GitHub PR #9), and `feat/sync-api` (GitHub PR #10) are merged; all are `tsc --noEmit` clean but none have yet been exercised against a live Postgres/Redis (Docker Desktop unavailable in the dev environment every time) — worth a live `docker compose up` + curl/push-pull pass once available, not blocking further work. `feat/barcode-api` hits the same gap: `app.inject()` confirms auth gating and the error handler, but no live OFF/Redis/Postgres round trip yet.
+> - `feat/backend-schema` (GitHub PR #8), `feat/auth` (GitHub PR #9), `feat/sync-api` (GitHub PR #10), and `feat/barcode-api` (GitHub PR #11) are all merged; all are `tsc --noEmit` clean but none have yet been exercised against a live Postgres/Redis (Docker Desktop unavailable in the dev environment every time) — worth a live `docker compose up` + curl/push-pull pass once available, not blocking further work.
+> - **`feat/background-workers`'s `CleanupWorker.purgeOldSoftDeletes` purges children before parents** (`inventory_movements`/`store_prices`/`shopping_list_items` before `inventory_items`/`shopping_lists`/`stores`/`products`) to avoid FK conflicts between tables purged in the same run, and wraps each table's delete in try/catch so one blocked table (e.g. a purge-eligible product still referenced by a live, non-deleted `inventory_items` row) doesn't abort the rest of the nightly job. BullMQ's `Queue`/`Worker` are given plain `ConnectionOptions` rather than a shared `ioredis` instance — passing an instance from this repo's top-level `ioredis` dependency fails to type-check against BullMQ's own bundled (differently-versioned) copy. Same live-verification gap as the rest of Phase 8: `tsc --noEmit` and `npm run build` are clean, no live Redis round trip against a running `docker compose` yet.
 
 ### Goal
 Production-ready backend with authentication, JWT sessions, sync endpoint, and background workers.
@@ -624,9 +625,10 @@ POST /api/v1/auth/logout      invalidate refresh token in Redis
 ### Background Workers (BullMQ + Redis)
 | Worker | Trigger | Job |
 |---|---|---|
-| SyncWorker | On demand | Processes sync payloads pushed by mobile clients |
-| CleanupWorker | Nightly cron | Purges soft-deleted records older than 90 days |
+| CleanupWorker | Nightly cron (`0 3 * * *`) | Purges soft-deleted records older than 90 days |
 | AlertWorker (V2) | On inventory write | Generates push notifications for low-stock / expiry |
+
+`SyncWorker` was dropped from scope — sync push runs synchronously inline in the route handler (see "as built" note above).
 
 ### PostgreSQL Schema Additions
 ```
@@ -643,8 +645,9 @@ backend/src/routes/auth.ts
 backend/src/services/AuthService.ts
 backend/src/db/schema.ts                  — full Postgres schema
 backend/src/db/migrate.ts                 — migration runner
-backend/src/workers/SyncWorker.ts
+backend/src/lib/queue.ts                  — BullMQ queue + repeatable-job scheduling
 backend/src/workers/CleanupWorker.ts
+backend/src/worker.ts                     — standalone worker-process entry point
 backend/.env.example                      — all required env vars documented
 ```
 
@@ -655,8 +658,8 @@ backend/.env.example                      — all required env vars documented
 - PR 14 (as built: GitHub PR #8): `feat/backend-schema` — Postgres schema (users, sync_log, domain tables), docker-compose ✅
 - PR 15 (as built: GitHub PR #9): `feat/auth` — register/login/JWT/refresh + Redis-backed refresh tokens ✅
 - PR 16 (as built: GitHub PR #10): `feat/sync-api` — generic push/pull routes implementing the `shared/validation/sync.ts` wire contract ✅
-- PR 17: `feat/barcode-api` — Open Food Facts lookup + Redis cache 🔄
-- PR 18: `feat/background-workers` — BullMQ `CleanupWorker` only (nightly soft-delete purge)
+- PR 17 (as built: GitHub PR #11): `feat/barcode-api` — Open Food Facts lookup + Redis cache ✅
+- PR 18: `feat/background-workers` — BullMQ `CleanupWorker` only (nightly soft-delete purge) 🔄
 - PR 19: `feat/mobile-auth-sync` — expo-secure-store, login/register screens, HTTP SyncTransport, real NetInfo
 
 ---

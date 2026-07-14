@@ -67,6 +67,8 @@ import { ProductCategory } from '@clay/shared/constants/categories';
 | `mobile/drizzle/` | Generated migration files — do not edit manually |
 | `backend/src/index.ts` | Fastify server entry point |
 | `backend/src/services/BarcodeService.ts` | Barcode lookup: Redis cache → Postgres `products` → Open Food Facts fallback |
+| `backend/src/workers/CleanupWorker.ts` | BullMQ nightly cron — purges soft-deleted rows older than 90 days |
+| `backend/src/worker.ts` | Standalone background-worker process entry point (`npm run worker`, separate from the HTTP server) |
 | `shared/types/shopping.ts` | Shared TypeScript types |
 
 ## Database
@@ -106,8 +108,9 @@ See `mobile/tailwind.config.js` for full theme. Use NativeWind Tailwind classes 
 - ✅ Backend Postgres schema — `users`, `sync_log` + `user_id`-owned domain tables, docker-compose for local Postgres+Redis (`backend/src/db/schema/`, Phase 8 PR #8)
 - ✅ Auth — JWT access tokens + Redis-backed opaque refresh tokens, bcrypt, `requireAuth` middleware (`backend/src/services/AuthService.ts`, `backend/src/middleware/auth.ts`, Phase 8 PR #9)
 - ✅ Sync API — generic push/pull routes (`backend/src/routes/sync.ts`, `backend/src/services/SyncService.ts`) (Phase 8 PR #10)
-- 🔄 Barcode API — `GET /api/v1/products/barcode/:code`, Redis cache → Postgres → Open Food Facts fallback (`backend/src/routes/products.ts`, `backend/src/services/BarcodeService.ts`) in progress, not yet merged (Phase 8)
-- ❌ Background workers, mobile auth/sync wiring — not yet (Phase 8)
+- ✅ Barcode API — `GET /api/v1/products/barcode/:code`, Redis cache → Postgres → Open Food Facts fallback (`backend/src/routes/products.ts`, `backend/src/services/BarcodeService.ts`) (Phase 8 PR #11)
+- 🔄 Background workers — BullMQ `CleanupWorker` (nightly cron, purges soft-deletes >90d) + standalone worker process (`backend/src/lib/queue.ts`, `backend/src/workers/CleanupWorker.ts`, `backend/src/worker.ts`) in progress, not yet merged (Phase 8)
+- ❌ Mobile auth/sync wiring — not yet (Phase 8)
 
 ## Phase Checklist
 
