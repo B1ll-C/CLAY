@@ -1,100 +1,68 @@
-import { randomUUID } from 'node:crypto';
+import { jwtVerify } from 'jose';
 
-import { ACCESS_TOKEN_TTL_SECONDS, REFRESH_TOKEN_TTL_SECONDS } from '@clay/shared';
-import bcrypt from 'bcrypt';
-import { eq } from 'drizzle-orm';
-import { jwtVerify, SignJWT } from 'jose';
-
-import { db } from '../db/index.js';
-import { users } from '../db/schema/index.js';
 import { ApiError } from '../lib/errors.js';
-import { redis } from '../lib/redis.js';
-
-const BCRYPT_ROUNDS = 12;
+import { supabase, supabaseAdmin, supabaseJwks } from '../lib/supabase.js';
 
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
 }
 
-function jwtSecretKey(): Uint8Array {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error('JWT_SECRET is not set');
+/** New-project default ("Confirm email" ON) makes signUp return no session — see docs/Supabase.md. */
+function requireSession(session: { access_token: string; refresh_token: string } | null): AuthTokens {
+  if (!session) {
+    throw new ApiError(
+      500,
+      'EMAIL_CONFIRMATION_ENABLED',
+      'Supabase project has "Confirm email" enabled; disable it so sign-up returns a session immediately (see docs/Supabase.md)',
+    );
   }
-  return new TextEncoder().encode(secret);
-}
-
-/** Redis key for an opaque refresh token → the userId it belongs to. */
-function refreshTokenKey(token: string): string {
-  return `refresh:${token}`;
-}
-
-async function issueAccessToken(userId: string): Promise<string> {
-  return new SignJWT({ sub: userId })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime(`${ACCESS_TOKEN_TTL_SECONDS}s`)
-    .sign(jwtSecretKey());
-}
-
-async function issueRefreshToken(userId: string): Promise<string> {
-  // Opaque random token, not a JWT — logout/rotation is then a plain Redis
-  // delete rather than needing a signature-based revocation scheme.
-  const token = `${randomUUID()}${randomUUID()}`.replace(/-/g, '');
-  await redis.set(refreshTokenKey(token), userId, 'EX', REFRESH_TOKEN_TTL_SECONDS);
-  return token;
-}
-
-async function issueTokenPair(userId: string): Promise<AuthTokens> {
-  const [accessToken, refreshToken] = await Promise.all([
-    issueAccessToken(userId),
-    issueRefreshToken(userId),
-  ]);
-  return { accessToken, refreshToken };
+  return { accessToken: session.access_token, refreshToken: session.refresh_token };
 }
 
 export const AuthService = {
   async register(email: string, password: string): Promise<AuthTokens> {
-    const existing = await db.query.users.findFirst({ where: eq(users.email, email) });
-    if (existing) {
-      throw new ApiError(409, 'EMAIL_TAKEN', 'An account with this email already exists');
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      if (error.status === 400 && /registered/i.test(error.message)) {
+        throw new ApiError(409, 'EMAIL_TAKEN', 'An account with this email already exists');
+      }
+      throw new ApiError(400, 'REGISTER_FAILED', error.message);
     }
-
-    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-    const [user] = await db.insert(users).values({ email, passwordHash }).returning();
-    return issueTokenPair(user.id);
+    return requireSession(data.session);
   },
 
   async login(email: string, password: string): Promise<AuthTokens> {
-    const user = await db.query.users.findFirst({ where: eq(users.email, email) });
-    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
       throw new ApiError(401, 'INVALID_CREDENTIALS', 'Incorrect email or password');
     }
-    return issueTokenPair(user.id);
+    return requireSession(data.session);
   },
 
   /** Rotates a refresh token: the old one stops working the moment a new pair is issued. */
   async refresh(refreshToken: string): Promise<AuthTokens> {
-    const userId = await redis.get(refreshTokenKey(refreshToken));
-    if (!userId) {
+    const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
+    if (error) {
       throw new ApiError(401, 'INVALID_REFRESH_TOKEN', 'Refresh token is invalid or expired');
     }
-    await redis.del(refreshTokenKey(refreshToken));
-    return issueTokenPair(userId);
+    return requireSession(data.session);
   },
 
+  /** Best-effort: rotates the refresh token, then revokes the resulting session server-side. */
   async logout(refreshToken: string): Promise<void> {
-    await redis.del(refreshTokenKey(refreshToken));
+    const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
+    if (error || !data.session) return;
+    await supabaseAdmin.auth.admin.signOut(data.session.access_token, 'global').catch(() => {});
   },
 
-  /** Verifies an access token's signature/expiry and returns the userId it was issued for. */
+  /** Verifies an access token's signature/expiry (via Supabase's JWKS) and returns the userId. */
   async verifyAccessToken(token: string): Promise<string> {
     let sub: unknown;
     try {
       ({
         payload: { sub },
-      } = await jwtVerify(token, jwtSecretKey()));
+      } = await jwtVerify(token, supabaseJwks));
     } catch {
       throw new ApiError(401, 'INVALID_TOKEN', 'Access token is invalid or expired');
     }

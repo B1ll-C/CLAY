@@ -4,7 +4,8 @@ import { z } from 'zod';
 
 export const registerInputSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8).max(128),
+  // Supabase Auth hashes passwords with bcrypt, which only uses the first 72 bytes.
+  password: z.string().min(8).max(72),
 });
 export type RegisterInput = z.infer<typeof registerInputSchema>;
 
