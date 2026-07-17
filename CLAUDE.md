@@ -69,6 +69,7 @@ import { ProductCategory } from '@clay/shared/constants/categories';
 | `backend/src/services/BarcodeService.ts` | Barcode lookup: Redis cache → Postgres `products` → Open Food Facts fallback |
 | `backend/src/workers/CleanupWorker.ts` | BullMQ nightly cron — purges soft-deleted rows older than 90 days |
 | `backend/src/worker.ts` | Standalone background-worker process entry point (`npm run worker`, separate from the HTTP server) |
+| `backend/src/lib/supabase.ts` | Supabase clients (anon-key + admin) and JWKS set — `feat/supabase-backend` only, see `docs/Supabase.md` |
 | `shared/types/shopping.ts` | Shared TypeScript types |
 
 ## Database
@@ -95,7 +96,7 @@ See `mobile/tailwind.config.js` for full theme. Use NativeWind Tailwind classes 
 - ✅ SQLite + Drizzle ORM foundation
 - ✅ State management — Zustand (UI state, `mobile/store/`) + TanStack Query v5 (`mobile/lib/queryClient.ts`, `mobile/hooks/`)
 - ✅ Zod validation schemas in `shared/validation/` (`@clay/shared`) — domain + sync wire format
-- ✅ Backend scaffold — Fastify + Drizzle + Postgres connection, `/health` + `/health/db`, migration runner
+- ✅ Backend scaffold — Fastify + Drizzle + Postgres connection (Supabase-hosted on `feat/supabase-backend`, see `docs/Supabase.md`), `/health` + `/health/db`, migration runner
 - ✅ Offline-first schema — `products`, `inventory_items`, `inventory_movements`, `shopping_lists`, `shopping_list_items`, `stores`, `store_prices` + `sync_queue`, all with sync columns (`mobile/models/`)
 - ✅ SyncEngine skeleton — push/pull/conflict + outbox (`mobile/lib/sync/`, `mobile/controller/SyncController.ts`); offline-only until Phase 8 transport
 - ✅ `useNetworkStatus` + `useSyncStatus` hooks
@@ -105,8 +106,8 @@ See `mobile/tailwind.config.js` for full theme. Use NativeWind Tailwind classes 
 - ✅ Barcode scanner — `expo-camera` scan flow (`mobile/app/scan/`, `mobile/components/scan/`), local SQLite barcode lookup, offline skeleton-product creation, add-to-inventory/list; remote Open Food Facts lookup deferred to Phase 8. **Requires a native rebuild** (`npx expo run:android`) for the camera module.
 - ✅ Price comparison — stores + per-product price tracking, side-by-side comparison, "cheapest basket" optimizer (`minimize_cost`/`minimize_trips`); sync-aware writes (`mobile/controller/StoreController.ts`, `mobile/controller/PriceController.ts`, `mobile/hooks/useStores.ts`, `mobile/hooks/usePrices.ts`, `mobile/app/(tabs)/prices.tsx` + `PricesDetails/`, `mobile/components/pricing/`). Backend price/store routes deferred to Phase 8.
 - 🔄 Groceries/product tab UI — still hardcoded (products are auto-created via inventory find-or-create / barcode scan; catalog screen lands later)
-- ✅ Backend Postgres schema — `users`, `sync_log` + `user_id`-owned domain tables, docker-compose for local Postgres+Redis (`backend/src/db/schema/`, Phase 8 PR #8)
-- ✅ Auth — JWT access tokens + Redis-backed opaque refresh tokens, bcrypt, `requireAuth` middleware (`backend/src/services/AuthService.ts`, `backend/src/middleware/auth.ts`, Phase 8 PR #9)
+- ✅ Backend Postgres schema — `users`, `sync_log` + `user_id`-owned domain tables (`backend/src/db/schema/`, Phase 8 PR #8). On `develop`, docker-compose runs local Postgres+Redis; on `feat/supabase-backend`, Postgres is a hosted Supabase project instead (docker-compose only runs Redis) and `users` FKs to Supabase's `auth.users` — see `docs/Supabase.md`.
+- ✅ Auth — `requireAuth` middleware (`backend/src/middleware/auth.ts`) unchanged across branches. On `develop`: JWT access tokens + Redis-backed opaque refresh tokens, bcrypt (`backend/src/services/AuthService.ts`, Phase 8 PR #9). On `feat/supabase-backend`: `AuthService` proxies Supabase Auth instead (JWKS-verified tokens, Supabase-managed refresh rotation) — same `AuthTokens` shape and routes, so mobile is identical either way.
 - ✅ Sync API — generic push/pull routes (`backend/src/routes/sync.ts`, `backend/src/services/SyncService.ts`) (Phase 8 PR #10)
 - ✅ Barcode API — `GET /api/v1/products/barcode/:code`, Redis cache → Postgres → Open Food Facts fallback (`backend/src/routes/products.ts`, `backend/src/services/BarcodeService.ts`) (Phase 8 PR #11)
 - 🔄 Background workers — BullMQ `CleanupWorker` (nightly cron, purges soft-deletes >90d) + standalone worker process (`backend/src/lib/queue.ts`, `backend/src/workers/CleanupWorker.ts`, `backend/src/worker.ts`) in progress, not yet merged (Phase 8)
