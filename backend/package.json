@@ -9,7 +9,9 @@
     "worker": "tsx watch src/worker.ts",
     "worker:start": "node dist/worker.js",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/db/migrate.ts"
+    "db:migrate": "tsx src/db/migrate.ts",
+    "test:auth": "tsx scripts/smoke-test.ts",
+    "reset": "tsx scripts/reset-db.ts"
   },
   "dependencies": {
     "@clay/shared": "*",

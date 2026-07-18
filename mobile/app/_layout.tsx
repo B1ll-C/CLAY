@@ -1,6 +1,7 @@
 import migrations from "@/drizzle/migrations";
 import "@/global.css";
 import { useAutoSync } from "@/hooks/useAutoSync";
+import "@/lib/dev/resetLocalDb";
 import { queryClient } from "@/lib/queryClient";
 import { HttpSyncTransport, syncEngine } from "@/lib/sync";
 import { db } from "@/models/db";
