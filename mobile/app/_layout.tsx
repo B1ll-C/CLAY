@@ -1,5 +1,6 @@
 import migrations from "@/drizzle/migrations";
 import "@/global.css";
+import { useAutoSync } from "@/hooks/useAutoSync";
 import { queryClient } from "@/lib/queryClient";
 import { HttpSyncTransport, syncEngine } from "@/lib/sync";
 import { db } from "@/models/db";
@@ -15,7 +16,8 @@ export const DATABASE_NAME = "clay";
 
 /**
  * Hydrates the session on launch, lights up `syncEngine`'s HTTP transport once
- * signed in (offline-only otherwise, per `SyncEngine`'s doc comment), and
+ * signed in (offline-only otherwise, per `SyncEngine`'s doc comment), fires
+ * sync at that engine's documented trigger points (`useAutoSync`), and
  * bounces a signed-out user out of `(tabs)` back to the login screen.
  */
 function AuthBootstrap() {
@@ -33,6 +35,8 @@ function AuthBootstrap() {
       status === "signedIn" ? new HttpSyncTransport() : null,
     );
   }, [status]);
+
+  useAutoSync();
 
   useEffect(() => {
     if (status === "hydrating") return;
