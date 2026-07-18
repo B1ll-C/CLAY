@@ -33,8 +33,10 @@ export function useSyncStatus() {
 
   const mutation = useMutation({
     mutationFn: (): Promise<SyncResult> => syncEngine.sync(),
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: syncStatusKeys.status }),
+    // Invalidate everything, not just sync-status: a pull can touch any
+    // synced table, and the caller (e.g. pull-to-refresh) expects its own
+    // list to reflect what just came down.
+    onSettled: () => queryClient.invalidateQueries(),
   });
 
   return {

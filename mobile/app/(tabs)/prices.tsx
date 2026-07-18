@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  RefreshControl,
   Text,
   TouchableOpacity,
   View,
@@ -14,10 +15,12 @@ import { PriceFormModal } from "@/components/pricing/PriceFormModal";
 import { StoreListModal } from "@/components/pricing/StoreListModal";
 import { TrackedProductCard } from "@/components/pricing/TrackedProductCard";
 import { useTrackedProducts } from "@/hooks/usePrices";
+import { useSyncStatus } from "@/hooks/useSyncStatus";
 
 export default function Prices() {
   const router = useRouter();
   const { data: products = [], isLoading, isError, refetch } = useTrackedProducts();
+  const { sync, isSyncing } = useSyncStatus();
   const [storesOpen, setStoresOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
 
@@ -62,6 +65,14 @@ export default function Prices() {
           data={products}
           keyExtractor={(summary) => String(summary.product.id)}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={isSyncing}
+              onRefresh={() => sync()}
+              tintColor="#557C55"
+              colors={["#557C55"]}
+            />
+          }
           renderItem={({ item }) => (
             <TrackedProductCard
               summary={item}

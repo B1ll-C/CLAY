@@ -2,6 +2,7 @@ import { FontAwesome } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Text, TouchableOpacity, View } from "react-native";
 
+import { SwipeToDelete } from "@/components/common/SwipeToDelete";
 import { formatQuantity } from "@/lib/inventory/format";
 import type { ShoppingListItemRow } from "@/models/shoppingListItems";
 
@@ -28,38 +29,36 @@ export function ShoppingItemRow({
   }
 
   return (
-    <View className="mb-2 flex-row items-center rounded-2xl bg-white px-3 py-3 shadow-sm">
-      <TouchableOpacity onPress={handleToggle} hitSlop={8} className="pr-3">
-        <FontAwesome
-          name={checked ? "check-circle" : "circle-o"}
-          size={24}
-          color={checked ? "#557C55" : "#C9D6CB"}
-        />
-      </TouchableOpacity>
+    <SwipeToDelete onDelete={onDelete}>
+      <View className="flex-row items-center rounded-2xl bg-white px-3 py-3 shadow-sm">
+        <TouchableOpacity onPress={handleToggle} hitSlop={8} className="pr-3">
+          <FontAwesome
+            name={checked ? "check-circle" : "circle-o"}
+            size={24}
+            color={checked ? "#557C55" : "#C9D6CB"}
+          />
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        onPress={onEdit}
-        activeOpacity={0.7}
-        className="flex-1 pr-2"
-      >
-        <Text
-          className={`text-base ${
-            checked ? "text-gray-400 line-through" : "text-gray-900"
-          }`}
-          numberOfLines={1}
+        <TouchableOpacity
+          onPress={onEdit}
+          activeOpacity={0.7}
+          className="flex-1 pr-2"
         >
-          {item.name}
-        </Text>
-        {showQty ? (
-          <Text className="text-xs text-gray-400">
-            {formatQuantity(item.quantity, item.unit)}
+          <Text
+            className={`text-base ${
+              checked ? "text-gray-400 line-through" : "text-gray-900"
+            }`}
+            numberOfLines={1}
+          >
+            {item.name}
           </Text>
-        ) : null}
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={onDelete} hitSlop={8} className="pl-1">
-        <FontAwesome name="trash-o" size={18} color="#9CA3AF" />
-      </TouchableOpacity>
-    </View>
+          {showQty ? (
+            <Text className="text-xs text-gray-400">
+              {formatQuantity(item.quantity, item.unit)}
+            </Text>
+          ) : null}
+        </TouchableOpacity>
+      </View>
+    </SwipeToDelete>
   );
 }

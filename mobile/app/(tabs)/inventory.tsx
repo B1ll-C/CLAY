@@ -1,19 +1,29 @@
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { InventoryCard } from "@/components/inventory/InventoryCard";
 import { InventoryFilterBar } from "@/components/inventory/InventoryFilterBar";
 import { InventoryFormModal } from "@/components/inventory/InventoryFormModal";
-import { useInventory } from "@/hooks/useInventory";
+import { useDeleteInventoryItem, useInventory } from "@/hooks/useInventory";
+import { useSyncStatus } from "@/hooks/useSyncStatus";
 import { alertCounts, matchesFilter } from "@/lib/inventory/alerts";
 import { useUiStore } from "@/store/uiStore";
 
 export default function Inventory() {
   const router = useRouter();
   const { data: items = [], isLoading, isError, refetch } = useInventory();
+  const deleteItem = useDeleteInventoryItem();
+  const { sync, isSyncing } = useSyncStatus();
   const filter = useUiStore((s) => s.inventoryFilter);
   const setFilter = useUiStore((s) => s.setInventoryFilter);
 
@@ -67,6 +77,14 @@ export default function Inventory() {
           data={visible}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={isSyncing}
+              onRefresh={() => sync()}
+              tintColor="#557C55"
+              colors={["#557C55"]}
+            />
+          }
           renderItem={({ item }) => (
             <InventoryCard
               item={item}
@@ -76,6 +94,7 @@ export default function Inventory() {
                   params: { id: String(item.id) },
                 })
               }
+              onDelete={() => deleteItem.mutate(item.id)}
             />
           )}
           ListEmptyComponent={

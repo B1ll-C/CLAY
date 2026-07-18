@@ -1,13 +1,6 @@
 import { FontAwesome } from "@expo/vector-icons";
 import { useState } from "react";
-import {
-  Alert,
-  FlatList,
-  Modal,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { FlatList, Modal, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { StoreCard } from "@/components/pricing/StoreCard";
@@ -37,21 +30,6 @@ export function StoreListModal({ visible, onClose }: StoreListModalProps) {
     setFormOpen(true);
   }
 
-  function confirmDelete(store: Store) {
-    Alert.alert(
-      "Delete store",
-      `Delete “${store.name}”? Any prices recorded there will be removed too.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => deleteStore.mutate(store.id),
-        },
-      ],
-    );
-  }
-
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView edges={["top"]} className="flex-1 bg-gray-50">
@@ -71,7 +49,7 @@ export function StoreListModal({ visible, onClose }: StoreListModalProps) {
             <StoreCard
               store={item}
               onPress={() => openEdit(item)}
-              onDelete={() => confirmDelete(item)}
+              onDelete={() => deleteStore.mutate(item.id)}
             />
           )}
           ListEmptyComponent={
