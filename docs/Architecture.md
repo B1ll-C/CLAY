@@ -5,7 +5,7 @@
 ```
 /
 ├── mobile/       Expo 53 + React Native 0.79.6
-├── backend/      Fastify + PostgreSQL + Drizzle (scaffold; full API Phase 8)
+├── backend/      Fastify + Supabase (Postgres + Auth) + Drizzle (scaffold; full API Phase 8)
 ├── shared/       Types, constants, Zod validation (used by both)
 └── docs/
 ```
@@ -38,12 +38,17 @@ connection (`backend/src/db/`), a migration runner (`npm run db:migrate`), and t
 `DATABASE_URL` at Postgres to enable the DB-health check and queries. Auth, Redis,
 BullMQ, and Pino logging arrive in Phase 8.
 
+On `feat/supabase-backend`, Postgres is a hosted Supabase project instead of a
+local container, and auth is proxied to Supabase Auth instead of a custom
+bcrypt/JWT/Redis stack — Drizzle stays the only data-access layer either way.
+See `docs/Supabase.md`.
+
 | Concern | Choice | Status |
 |---|---|---|
 | Framework | Fastify v5 | ✅ Phase 2 |
-| Database | PostgreSQL + Drizzle ORM | ✅ Phase 2 (connection + migrations) |
+| Database | PostgreSQL + Drizzle ORM (Supabase-hosted on `feat/supabase-backend`) | ✅ Phase 2 (connection + migrations) |
 | Cache | Redis | Phase 8 |
-| Auth | JWT (15m access / 30d refresh) | Phase 8 |
+| Auth | JWT, verified via Supabase's JWKS (`feat/supabase-backend`) | Phase 8 |
 | Jobs | BullMQ | Phase 8 |
 | Logging | Pino | Phase 8 |
 

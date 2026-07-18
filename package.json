@@ -15,6 +15,7 @@
     "lint": "npm run lint --workspace=mobile",
     "backend:dev": "npm run dev --workspace=backend",
     "backend:build": "npm run build --workspace=backend",
-    "backend:worker": "npm run worker --workspace=backend"
+    "backend:worker": "npm run worker --workspace=backend",
+    "reset": "npm run reset --workspace=backend"
   }
 }

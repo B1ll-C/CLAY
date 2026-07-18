@@ -106,11 +106,32 @@ export class SyncEngine {
     }
 
     // Build the wire payload, enriching each entry with the row's current
-    // server_id/version (the queue stores neither).
+    // server_id/version (the queue stores neither). `pushedEntries[i]` and
+    // `response.results[i]` line up positionally — SyncService.applyPush
+    // processes `changes` in order and pushes one result per change, so we
+    // zip by index rather than re-deriving identity from (table, recordId):
+    // two queued entries for the same row (e.g. a CREATE then an UPDATE
+    // before the first sync ran) share that key, and a lookup keyed on it
+    // would silently drop one entry's ack, leaving it stuck pending and
+    // replayed as a fresh CREATE on every later sync. `pushedEntries` (not
+    // `pending`) is what actually lines up with `changes`/`results`, since
+    // some pending entries are resolved locally below and never sent.
     const changes: SyncChange[] = [];
-    const queueIdByKey = new Map<string, number>();
+    const pushedEntries: typeof pending = [];
     for (const entry of pending) {
       const meta = await this.loadRowMeta(entry.tableName, entry.recordId);
+
+      // An UPDATE/DELETE for a row with no serverId means its CREATE never
+      // reached the server (dropped queue entry, offline the whole time,
+      // etc.) — there is nothing there to update or delete remotely.
+      // Resolve locally rather than pushing a change the server can only
+      // reject, which would otherwise block every other change in the batch.
+      if (entry.operation !== "CREATE" && !meta?.serverId) {
+        await SyncController.markProcessed(entry.id);
+        continue;
+      }
+
+      pushedEntries.push(entry);
       changes.push({
         table: entry.tableName,
         operation: entry.operation,
@@ -122,15 +143,19 @@ export class SyncEngine {
           : null,
         updatedAt: Math.floor((entry.createdAt?.getTime() ?? Date.now()) / 1000),
       });
-      queueIdByKey.set(`${entry.tableName}:${entry.recordId}`, entry.id);
+    }
+
+    if (changes.length === 0) {
+      return { ...EMPTY_OFFLINE, offline: false };
     }
 
     let pushed = 0;
     let conflicts = 0;
     try {
       const response = await this.transport.push({ changes });
-      for (const result of response.results) {
-        const queueId = queueIdByKey.get(`${result.table}:${result.recordId}`);
+      for (let i = 0; i < response.results.length; i++) {
+        const result = response.results[i];
+        const queueId = pushedEntries[i]?.id;
         if (queueId == null) continue;
 
         if (result.status === "applied") {
@@ -155,7 +180,7 @@ export class SyncEngine {
       return { ...EMPTY_OFFLINE, offline: false, pushed, conflicts };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      for (const entry of pending) {
+      for (const entry of pushedEntries) {
         await SyncController.recordFailure(entry.id, message);
       }
       return { ...EMPTY_OFFLINE, ok: false, offline: false, error: message };

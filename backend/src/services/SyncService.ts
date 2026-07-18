@@ -1,6 +1,6 @@
 import type { SyncChange, SyncPushResult, SyncRecord } from '@clay/shared';
 import { SYNCED_TABLES } from '@clay/shared';
-import { and, eq, getTableColumns, gt } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, gt } from 'drizzle-orm';
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
 
 import { db } from '../db/index.js';
@@ -59,6 +59,7 @@ async function logChange(
   change: SyncChange,
   serverVersion: number,
   conflictResolution: string | null,
+  serverId: string | null = null,
 ): Promise<void> {
   await db.insert(syncLog).values({
     userId,
@@ -67,8 +68,38 @@ async function logChange(
     operation: change.operation,
     clientVersion: change.version,
     serverVersion,
+    serverId,
     conflictResolution,
   });
+}
+
+/**
+ * A CREATE is keyed by the client's local (device-scoped) `recordId`, which
+ * is stable across retries of the same push — a dropped ack, a queue entry
+ * that never got marked processed, etc. all resend the identical `recordId`.
+ * Before inserting, check whether we've already applied a CREATE for this
+ * user/table/recordId and, if so, replay that result instead of inserting a
+ * second row.
+ */
+async function findPriorCreate(
+  userId: string,
+  table: string,
+  recordId: number,
+): Promise<{ serverId: string } | null> {
+  const [log] = await db
+    .select({ serverId: syncLog.serverId })
+    .from(syncLog)
+    .where(
+      and(
+        eq(syncLog.userId, userId),
+        eq(syncLog.tableName, table),
+        eq(syncLog.recordId, recordId),
+        eq(syncLog.operation, 'CREATE'),
+      ),
+    )
+    .orderBy(desc(syncLog.id))
+    .limit(1);
+  return log?.serverId ? { serverId: log.serverId } : null;
 }
 
 async function applyOne(userId: string, change: SyncChange): Promise<SyncPushResult> {
@@ -80,13 +111,33 @@ async function applyOne(userId: string, change: SyncChange): Promise<SyncPushRes
   const ownerFilter = entry.shared ? undefined : eq(c.userId!, userId);
 
   if (change.operation === 'CREATE') {
+    const prior = await findPriorCreate(userId, change.table, change.recordId);
+    if (prior) {
+      const idFilter = eq(c.id, Number(prior.serverId));
+      const where = ownerFilter ? and(idFilter, ownerFilter)! : idFilter;
+      const [existing] = await db.select().from(entry.table).where(where);
+      if (existing) {
+        // Replay: this recordId already has a CREATE on file (e.g. the ack
+        // for the first push got dropped and the client retried) — echo the
+        // prior result instead of inserting a duplicate row.
+        return {
+          table: change.table,
+          recordId: change.recordId,
+          status: 'applied',
+          serverId: prior.serverId,
+          version: Number((existing as Row).version),
+        };
+      }
+      // The row is gone (hard-deleted) — fall through and create fresh.
+    }
+
     const values = coercePayloadForDb(entry, change.payload ?? {});
     const [row] = await db
       .insert(entry.table)
       .values({ ...(entry.shared ? {} : { userId }), ...values } as never)
       .returning();
     const created = row as Row;
-    await logChange(userId, change, 1, null);
+    await logChange(userId, change, 1, null, String(created.id));
     return {
       table: change.table,
       recordId: change.recordId,
@@ -113,7 +164,7 @@ async function applyOne(userId: string, change: SyncChange): Promise<SyncPushRes
   const current = existing as Row;
   const currentVersion = Number(current.version);
   if (change.version < currentVersion) {
-    await logChange(userId, change, currentVersion, 'stale_version');
+    await logChange(userId, change, currentVersion, 'stale_version', serverId);
     return { table: change.table, recordId: change.recordId, status: 'conflict', serverId, version: currentVersion };
   }
 
@@ -130,7 +181,7 @@ async function applyOne(userId: string, change: SyncChange): Promise<SyncPushRes
       .set({ ...values, version: newVersion, updatedAt: new Date() } as never)
       .where(where);
   }
-  await logChange(userId, change, newVersion, null);
+  await logChange(userId, change, newVersion, null, serverId);
   return { table: change.table, recordId: change.recordId, status: 'applied', serverId, version: newVersion };
 }
 
@@ -144,7 +195,22 @@ export const SyncService = {
   async applyPush(userId: string, changes: SyncChange[]): Promise<{ results: SyncPushResult[]; serverTime: number }> {
     const results: SyncPushResult[] = [];
     for (const change of changes) {
-      results.push(await applyOne(userId, change));
+      try {
+        results.push(await applyOne(userId, change));
+      } catch (err) {
+        // An individual change's identity/state problem (bad serverId, unknown
+        // table, ...) shouldn't block every other change in the batch from
+        // landing — surface it as an unresolved conflict so the client
+        // retries just that entry instead of the whole push failing.
+        if (!(err instanceof ApiError)) throw err;
+        results.push({
+          table: change.table,
+          recordId: change.recordId,
+          status: 'conflict',
+          serverId: change.serverId ?? null,
+          version: change.version,
+        });
+      }
     }
     return { results, serverTime: toWireSeconds(new Date()) };
   },

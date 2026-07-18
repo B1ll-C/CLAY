@@ -1,5 +1,7 @@
 import migrations from "@/drizzle/migrations";
 import "@/global.css";
+import { useAutoSync } from "@/hooks/useAutoSync";
+import "@/lib/dev/resetLocalDb";
 import { queryClient } from "@/lib/queryClient";
 import { HttpSyncTransport, syncEngine } from "@/lib/sync";
 import { db } from "@/models/db";
@@ -10,12 +12,14 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { SQLiteProvider } from "expo-sqlite";
 import { Suspense, useEffect } from "react";
 import { ActivityIndicator } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export const DATABASE_NAME = "clay";
 
 /**
  * Hydrates the session on launch, lights up `syncEngine`'s HTTP transport once
- * signed in (offline-only otherwise, per `SyncEngine`'s doc comment), and
+ * signed in (offline-only otherwise, per `SyncEngine`'s doc comment), fires
+ * sync at that engine's documented trigger points (`useAutoSync`), and
  * bounces a signed-out user out of `(tabs)` back to the login screen.
  */
 function AuthBootstrap() {
@@ -34,6 +38,8 @@ function AuthBootstrap() {
     );
   }, [status]);
 
+  useAutoSync();
+
   useEffect(() => {
     if (status === "hydrating") return;
     if (status === "signedOut" && segments[0] === "(tabs)") {
@@ -48,24 +54,26 @@ export default function RootLayout() {
   const { success, error } = useMigrations(db, migrations);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <Suspense fallback={<ActivityIndicator size="large" />}>
-        <SQLiteProvider
-          databaseName={DATABASE_NAME}
-          options={{
-            enableChangeListener: true,
-          }}
-          useSuspense
-        >
-          <AuthBootstrap />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: "transparent" },
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <Suspense fallback={<ActivityIndicator size="large" />}>
+          <SQLiteProvider
+            databaseName={DATABASE_NAME}
+            options={{
+              enableChangeListener: true,
             }}
-          />
-        </SQLiteProvider>
-      </Suspense>
-    </QueryClientProvider>
+            useSuspense
+          >
+            <AuthBootstrap />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: "transparent" },
+              }}
+            />
+          </SQLiteProvider>
+        </Suspense>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }

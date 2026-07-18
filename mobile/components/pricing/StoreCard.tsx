@@ -1,6 +1,7 @@
 import { FontAwesome } from "@expo/vector-icons";
 import { Text, TouchableOpacity, View } from "react-native";
 
+import { SwipeToDelete } from "@/components/common/SwipeToDelete";
 import type { Store } from "@/models/stores";
 
 interface StoreCardProps {
@@ -9,14 +10,14 @@ interface StoreCardProps {
   onDelete: () => void;
 }
 
-/** A store in the Stores modal: name, address, and a delete action. */
+/** A store in the Stores modal: name, address, and swipe-to-delete. */
 export function StoreCard({ store, onPress, onDelete }: StoreCardProps) {
   return (
-    <View className="mb-3 flex-row items-center rounded-2xl bg-white p-4 shadow-sm">
+    <SwipeToDelete onDelete={onDelete} spacing={12}>
       <TouchableOpacity
         activeOpacity={0.8}
         onPress={onPress}
-        className="mr-3 flex-1 flex-row items-center"
+        className="flex-row items-center rounded-2xl bg-white p-4 shadow-sm"
       >
         <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-primary-light">
           <FontAwesome name="building-o" size={16} color="#557C55" />
@@ -32,9 +33,6 @@ export function StoreCard({ store, onPress, onDelete }: StoreCardProps) {
           ) : null}
         </View>
       </TouchableOpacity>
-      <TouchableOpacity onPress={onDelete} hitSlop={8}>
-        <FontAwesome name="trash-o" size={18} color="#9CA3AF" />
-      </TouchableOpacity>
-    </View>
+    </SwipeToDelete>
   );
 }

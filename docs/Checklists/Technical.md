@@ -25,8 +25,8 @@ Track cross-cutting technical requirements across the full build.
 - [ ] All routes versioned under `/api/v1/` (Phase 8)
 - [ ] Zod validation on all request bodies (Phase 8)
 - [ ] JWT middleware on all protected routes (Phase 8)
-- [ ] PostgreSQL connected via Drizzle ORM with migrations (Phase 8)
-- [ ] Redis connected for token store and caching (Phase 8)
+- [ ] PostgreSQL connected via Drizzle ORM with migrations (Phase 8) — Supabase-hosted on `feat/supabase-backend`, see docs/Supabase.md
+- [ ] Redis connected for caching (Phase 8) — no longer the token store on `feat/supabase-backend`; Supabase Auth owns refresh-token rotation
 - [x] `GET /health` returns `{ status: "ok", version, uptime }` (Phase 2 scaffold done)
 - [ ] Structured JSON logging with Pino (Phase 8)
 - [ ] No secrets in source code — `.env.example` documents all required vars (Phase 8)

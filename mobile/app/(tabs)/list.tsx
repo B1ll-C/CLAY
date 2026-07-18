@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  RefreshControl,
   Text,
   TouchableOpacity,
   View,
@@ -12,11 +13,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ListCard } from "@/components/shopping/ListCard";
 import { ListFormModal } from "@/components/shopping/ListFormModal";
-import { useShoppingLists } from "@/hooks/useShoppingLists";
+import { useDeleteList, useShoppingLists } from "@/hooks/useShoppingLists";
+import { useSyncStatus } from "@/hooks/useSyncStatus";
 
 export default function Lists() {
   const router = useRouter();
   const { data: lists = [], isLoading, isError, refetch } = useShoppingLists();
+  const deleteList = useDeleteList();
+  const { sync, isSyncing } = useSyncStatus();
   const [formOpen, setFormOpen] = useState(false);
 
   function openList(id: number) {
@@ -53,8 +57,20 @@ export default function Lists() {
           data={lists}
           keyExtractor={(list) => String(list.id)}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={isSyncing}
+              onRefresh={() => sync()}
+              tintColor="#557C55"
+              colors={["#557C55"]}
+            />
+          }
           renderItem={({ item }) => (
-            <ListCard list={item} onPress={() => openList(item.id)} />
+            <ListCard
+              list={item}
+              onPress={() => openList(item.id)}
+              onDelete={() => deleteList.mutate(item.id)}
+            />
           )}
           ListEmptyComponent={
             <View className="mt-24 items-center px-8">

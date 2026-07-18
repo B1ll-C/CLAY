@@ -17,6 +17,8 @@ export const syncLog = pgTable('sync_log', {
   operation: text('operation').notNull(),
   clientVersion: integer('client_version'),
   serverVersion: integer('server_version'),
+  /** Row assigned/touched by this change — lets a retried CREATE be recognized as a replay. */
+  serverId: text('server_id'),
   conflictResolution: text('conflict_resolution'),
   resolvedAt: timestamp('resolved_at', { withTimezone: true }).notNull().defaultNow(),
 });

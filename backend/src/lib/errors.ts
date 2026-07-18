@@ -28,11 +28,18 @@ export class ApiError extends Error {
 export function registerErrorHandler(app: FastifyInstance) {
   app.setErrorHandler((err, request, reply) => {
     if (err instanceof ApiError) {
+      if (err.statusCode >= 400) {
+        request.log.warn(
+          { code: err.code, message: err.message, details: err.details, body: request.body },
+          'request failed',
+        );
+      }
       reply.code(err.statusCode);
       return { error: { code: err.code, message: err.message, ...(err.details !== undefined ? { details: err.details } : {}) } };
     }
 
     if (err instanceof ZodError) {
+      request.log.warn({ issues: err.issues, body: request.body }, 'request failed validation');
       reply.code(400);
       return { error: { code: 'VALIDATION_ERROR', message: 'Request failed validation', details: err.issues } };
     }
