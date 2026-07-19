@@ -1,7 +1,7 @@
 import { jwtVerify } from 'jose';
 
 import { ApiError } from '../lib/errors.js';
-import { supabase, supabaseAdmin, supabaseJwks } from '../lib/supabase.js';
+import { getSupabase, getSupabaseAdmin, getSupabaseJwks } from '../lib/supabase.js';
 
 export interface AuthTokens {
   accessToken: string;
@@ -22,7 +22,7 @@ function requireSession(session: { access_token: string; refresh_token: string }
 
 export const AuthService = {
   async register(email: string, password: string): Promise<AuthTokens> {
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await getSupabase().auth.signUp({ email, password });
     if (error) {
       if (error.status === 400 && /registered/i.test(error.message)) {
         throw new ApiError(409, 'EMAIL_TAKEN', 'An account with this email already exists');
@@ -33,7 +33,7 @@ export const AuthService = {
   },
 
   async login(email: string, password: string): Promise<AuthTokens> {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await getSupabase().auth.signInWithPassword({ email, password });
     if (error) {
       throw new ApiError(401, 'INVALID_CREDENTIALS', 'Incorrect email or password');
     }
@@ -42,7 +42,7 @@ export const AuthService = {
 
   /** Rotates a refresh token: the old one stops working the moment a new pair is issued. */
   async refresh(refreshToken: string): Promise<AuthTokens> {
-    const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
+    const { data, error } = await getSupabase().auth.refreshSession({ refresh_token: refreshToken });
     if (error) {
       throw new ApiError(401, 'INVALID_REFRESH_TOKEN', 'Refresh token is invalid or expired');
     }
@@ -51,9 +51,9 @@ export const AuthService = {
 
   /** Best-effort: rotates the refresh token, then revokes the resulting session server-side. */
   async logout(refreshToken: string): Promise<void> {
-    const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
+    const { data, error } = await getSupabase().auth.refreshSession({ refresh_token: refreshToken });
     if (error || !data.session) return;
-    await supabaseAdmin.auth.admin.signOut(data.session.access_token, 'global').catch(() => {});
+    await getSupabaseAdmin().auth.admin.signOut(data.session.access_token, 'global').catch(() => {});
   },
 
   /** Verifies an access token's signature/expiry (via Supabase's JWKS) and returns the userId. */
@@ -62,7 +62,7 @@ export const AuthService = {
     try {
       ({
         payload: { sub },
-      } = await jwtVerify(token, supabaseJwks));
+      } = await jwtVerify(token, getSupabaseJwks()));
     } catch {
       throw new ApiError(401, 'INVALID_TOKEN', 'Access token is invalid or expired');
     }

@@ -663,7 +663,7 @@ backend/.env.example                      — all required env vars documented
 - PR 16 (as built: GitHub PR #10): `feat/sync-api` — generic push/pull routes implementing the `shared/validation/sync.ts` wire contract ✅
 - PR 17 (as built: GitHub PR #11): `feat/barcode-api` — Open Food Facts lookup + Redis cache ✅
 - PR 18 (as built: GitHub PR #12): `feat/background-workers` — BullMQ `CleanupWorker` only (nightly soft-delete purge) ✅
-- PR 19: `feat/mobile-auth-sync` — expo-secure-store, login/register screens, HTTP SyncTransport, real NetInfo 🔄 (implemented on branch, not yet merged)
+- PR 19 (as built: GitHub PR #13): `feat/mobile-auth-sync` — expo-secure-store, login/register screens, HTTP SyncTransport, real NetInfo ✅
 - `feat/supabase-backend` — replaces local Postgres + bcrypt/JWT/Redis-refresh-token auth with hosted Supabase (Postgres + Auth), Drizzle unchanged 🔄 (alternative branch, not merged)
 
 ---

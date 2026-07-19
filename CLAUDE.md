@@ -102,6 +102,10 @@ A pure docs/chore change doesn't need any of these; a bugfix needs at minimum a 
 
 **Mobile E2E** — [Maestro](https://maestro.mobile.dev), a standalone CLI (not an npm package): install via `curl -Ls "https://get.maestro.mobile.dev" | bash`. Flows live in `mobile/.maestro/` and target `appId: com.anonymous.CLAY` against an already-built app (dev client or APK — see the barcode scanner's native-rebuild note above) on a running emulator/device. `smoke-launch.yaml` needs no setup. `add-product.yaml` logs into a real Supabase-backed account and needs a seeded test user: `maestro test --env TEST_EMAIL=... --env TEST_PASSWORD=... mobile/.maestro/add-product.yaml`. Interactive elements Maestro flows target carry an explicit `testID` (e.g. `login-email-input`, `add-product-fab`, `product-save-button`) — add one when a new flow needs to target an element that doesn't have a stable, unique visible label.
 
+### Continuous Integration
+
+`.github/workflows/ci.yml` runs on every push and on PRs into `main`/`develop`: lint (mobile), type-check (mobile + backend), and the mobile + backend test suites (Node 22, `npm ci` at the workspace root) — the same commands as the table above, so a red CI check reproduces locally with those exact commands. `.github/workflows/release-branch.yml` fires when a PR merges into `develop`: it computes the next `release/vX.Y.Z` branch off `develop` and opens a PR from it into `main` for manual review — merging to `main` stays a human click, this workflow never merges anything itself.
+
 ## Design System
 
 Color palette (sage green theme):

@@ -264,7 +264,37 @@ Add a 4th terminal (`cd backend && npm run worker`) only if you're testing the n
 
 ---
 
-## 7. Troubleshooting
+## 7. Running tests
+
+| Layer | Where | Run |
+|---|---|---|
+| Mobile unit | `mobile/**/*.test.ts(x)` — Jest via the `jest-expo` preset + `@testing-library/react-native` (RNTL) v14 | `npm test --workspace=mobile` (or `cd mobile && npm test`) |
+| Backend unit + integration | `backend/src/**/*.test.ts` — Vitest, config in `backend/vitest.config.ts` | `npm test --workspace=backend` (or `cd backend && npm test`) |
+| Mobile E2E | `mobile/.maestro/*.yaml` — [Maestro](https://maestro.mobile.dev) | `npm run test:e2e --workspace=mobile` |
+
+Backend integration tests spin up the real Fastify app via `buildApp()` (`backend/src/app.ts`) and hit routes with `.inject()` — they don't need the Docker Postgres/Redis containers from §3.1 to be running unless the specific test touches the DB or Redis directly (check the test file). `vitest.config.ts` loads `dotenv/config`, so `backend/.env` from §3.2 needs to exist for any test that imports `AuthService`/`lib/supabase.ts`.
+
+Maestro is a standalone CLI, not an npm package — install it separately:
+
+```bash
+curl -Ls "https://get.maestro.mobile.dev" | bash
+```
+
+Maestro flows target `appId: com.anonymous.CLAY` against an already-built app (dev client or APK from §5) on a running emulator/device — a plain Expo Go session won't work. `smoke-launch.yaml` needs no extra setup; `add-product.yaml` logs into a real Supabase-backed account and needs a seeded test user:
+
+```bash
+maestro test --env TEST_EMAIL=... --env TEST_PASSWORD=... mobile/.maestro/add-product.yaml
+```
+
+### Continuous integration
+
+Every push and every pull request into `main`/`develop` runs lint, type-check, and both test suites in GitHub Actions (`.github/workflows/ci.yml`) — the same commands as the table above, on Node 22. There's nothing to install locally for this; it just means a red CI check on a PR reproduces with the commands in this section. Merging a PR into `develop` also triggers `.github/workflows/release-branch.yml`, which opens a versioned `release/vX.Y.Z` PR into `main` for manual review — it doesn't run or require tests itself.
+
+See `CLAUDE.md`'s Testing section for what coverage a change needs before it's committed (unit vs. integration vs. E2E).
+
+---
+
+## 8. Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
@@ -278,7 +308,7 @@ Add a 4th terminal (`cd backend && npm run worker`) only if you're testing the n
 
 ---
 
-## 8. Where things live (for reference)
+## 9. Where things live (for reference)
 
 | File | Purpose |
 |---|---|
@@ -292,5 +322,9 @@ Add a 4th terminal (`cd backend && npm run worker`) only if you're testing the n
 | `mobile/app/_layout.tsx` | SQLite init + auto-run Drizzle migrations |
 | `mobile/models/db.ts` | Drizzle + expo-sqlite instance |
 | `mobile/app.json` | Expo config — camera/SQLite native plugin config |
+| `backend/vitest.config.ts` | Backend unit/integration test config |
+| `mobile/.maestro/` | Maestro E2E flow definitions |
+| `.github/workflows/ci.yml` | Lint/type-check/test on every push and PR |
+| `.github/workflows/release-branch.yml` | Auto-opens a `release/vX.Y.Z` PR into `main` when a PR merges into `develop` |
 
 For architecture and phase-by-phase feature context, see `docs/Architecture.md`, `docs/Roadmap.md`, and the root `CLAUDE.md`.
