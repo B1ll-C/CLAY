@@ -199,10 +199,17 @@ export const SyncService = {
         results.push(await applyOne(userId, change));
       } catch (err) {
         // An individual change's identity/state problem (bad serverId, unknown
-        // table, ...) shouldn't block every other change in the batch from
-        // landing — surface it as an unresolved conflict so the client
-        // retries just that entry instead of the whole push failing.
-        if (!(err instanceof ApiError)) throw err;
+        // table, a DB constraint violation, ...) shouldn't block every other
+        // change in the batch from landing — surface it as an unresolved
+        // conflict so the client retries just that entry instead of the
+        // whole push failing and every co-queued change (including ones that
+        // already applied) losing its ack along with it. Not just ApiError:
+        // an uncaught error here used to propagate out of applyPush entirely,
+        // which is what let one broken change (e.g. a stale FK) wedge an
+        // otherwise-fine parent row's ack forever.
+        if (!(err instanceof ApiError)) {
+          console.error('[SyncService] applyOne failed', { table: change.table, recordId: change.recordId }, err);
+        }
         results.push({
           table: change.table,
           recordId: change.recordId,

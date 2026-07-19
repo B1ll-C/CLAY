@@ -38,6 +38,25 @@ export const SYNCED_TABLES = [
 ] as const;
 export type SyncedTable = (typeof SYNCED_TABLES)[number];
 
+/**
+ * Foreign-key fields whose value is another synced table's row id. Both the
+ * mobile SyncEngine and the backend SyncService store these columns using
+ * their OWN id space (the mobile row's local SQLite id vs. the server's
+ * Postgres id) — the two are never the same number once a device has synced
+ * more than a handful of rows. A push must translate the local id to the
+ * referenced row's `serverId` before it crosses the wire (the server's FK
+ * constraints point at its own ids); a pull must translate the incoming
+ * `serverId` back to the local row's id before writing. `SYNCED_TABLES`'s
+ * parent-before-child order guarantees the referenced table is always
+ * resolvable by the time its dependents are processed in the same cycle.
+ */
+export const SYNC_FK_FIELDS: Partial<Record<SyncedTable, Record<string, SyncedTable>>> = {
+  shopping_list_items: { listId: 'shopping_lists', productId: 'products' },
+  inventory_items: { productId: 'products' },
+  inventory_movements: { inventoryItemId: 'inventory_items' },
+  store_prices: { productId: 'products', storeId: 'stores' },
+};
+
 /** Backend sync endpoints (wired in Phase 8). */
 export const SYNC_PUSH_PATH = '/api/v1/sync/push';
 export const SYNC_PULL_PATH = '/api/v1/sync/pull';

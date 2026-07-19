@@ -1,6 +1,7 @@
 import { db } from "@/models/db";
 import { SyncController } from "@/controller/SyncController";
-import type { SyncChange, SyncRecord, SyncStatus } from "@clay/shared";
+import { SYNC_FK_FIELDS } from "@clay/shared";
+import type { SyncChange, SyncedTable, SyncRecord, SyncStatus } from "@clay/shared";
 import { eq, getTableColumns } from "drizzle-orm";
 import type { SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 
@@ -131,6 +132,22 @@ export class SyncEngine {
         continue;
       }
 
+      let payload = entry.payload
+        ? (JSON.parse(entry.payload) as Record<string, unknown>)
+        : null;
+      if (payload) {
+        const resolved = await this.resolveOutgoingForeignKeys(
+          entry.tableName,
+          payload,
+        );
+        // A referenced row (e.g. the item's list) hasn't synced yet — leave
+        // this entry queued rather than push a payload the server can't
+        // resolve to a real row. It's retried once the parent gets its
+        // serverId, on this or a later sync() cycle.
+        if (!resolved.ready) continue;
+        payload = resolved.payload;
+      }
+
       pushedEntries.push(entry);
       changes.push({
         table: entry.tableName,
@@ -138,9 +155,7 @@ export class SyncEngine {
         recordId: entry.recordId,
         serverId: meta?.serverId ?? null,
         version: meta?.version ?? 0,
-        payload: entry.payload
-          ? (JSON.parse(entry.payload) as Record<string, unknown>)
-          : null,
+        payload,
         updatedAt: Math.floor((entry.createdAt?.getTime() ?? Date.now()) / 1000),
       });
     }
@@ -236,6 +251,61 @@ export class SyncEngine {
     };
   }
 
+  /**
+   * Translate a payload's foreign-key fields from this device's local ids to
+   * the referenced rows' serverIds before it crosses the wire. `ready` is
+   * false when a referenced row hasn't synced yet (no serverId to send).
+   */
+  private async resolveOutgoingForeignKeys(
+    tableName: string,
+    payload: Record<string, unknown>,
+  ): Promise<{ payload: Record<string, unknown>; ready: boolean }> {
+    const fkFields = SYNC_FK_FIELDS[tableName as SyncedTable];
+    if (!fkFields) return { payload, ready: true };
+
+    const resolved = { ...payload };
+    for (const [field, refTable] of Object.entries(fkFields)) {
+      const localId = payload[field];
+      if (localId == null) continue; // nullable FK (e.g. no linked product)
+      const meta = await this.loadRowMeta(refTable, Number(localId));
+      if (!meta?.serverId) return { payload, ready: false };
+      resolved[field] = Number(meta.serverId);
+    }
+    return { payload: resolved, ready: true };
+  }
+
+  /**
+   * Translate a pulled record's foreign-key fields from the server's ids
+   * back to this device's local row ids before it's written to SQLite (whose
+   * FK columns point at local ids, same as the server's point at its own).
+   * Returns `null` when a referenced row hasn't been pulled to this device
+   * yet, so the caller can skip the record rather than write a dangling FK.
+   */
+  private async resolveIncomingForeignKeys(
+    tableName: string,
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown> | null> {
+    const fkFields = SYNC_FK_FIELDS[tableName as SyncedTable];
+    if (!fkFields) return data;
+
+    const resolved = { ...data };
+    for (const [field, refTable] of Object.entries(fkFields)) {
+      const serverIdValue = data[field];
+      if (serverIdValue == null) continue;
+      const refTableDef = tableFor(refTable);
+      if (!refTableDef) return null;
+      const refCols = syncCols(refTableDef);
+      const [row] = await db
+        .select()
+        .from(refTableDef as SQLiteTable)
+        .where(eq(refCols.serverId, String(serverIdValue)))
+        .limit(1);
+      if (!row) return null;
+      resolved[field] = (row as Record<string, unknown>).id;
+    }
+    return resolved;
+  }
+
   /** Stamp a row as synced once the server has acknowledged it. */
   private async markRowSynced(
     tableName: string,
@@ -270,6 +340,13 @@ export class SyncEngine {
     if (!table) return { skipped: true, conflict: false, notified: false };
     const cols = syncCols(table);
 
+    // Translate FK fields (e.g. an item's listId) from the server's ids to
+    // this device's local ids before touching SQLite. `null` means a
+    // referenced row hasn't been pulled here yet — defer rather than write
+    // a dangling reference; it's retried once the parent shows up.
+    const data = await this.resolveIncomingForeignKeys(record.table, record.data);
+    if (!data) return { skipped: true, conflict: false, notified: false };
+
     const rows = await db
       .select()
       .from(table as SQLiteTable)
@@ -281,7 +358,7 @@ export class SyncEngine {
     if (!local) {
       if (record.deleted) return { skipped: true, conflict: false, notified: false };
       await db.insert(table as SQLiteTable).values({
-        ...record.data,
+        ...data,
         serverId: record.serverId,
         version: record.version,
         syncStatus: "synced" satisfies SyncStatus,
@@ -305,7 +382,7 @@ export class SyncEngine {
       await db
         .update(table as SQLiteTable)
         .set({
-          ...record.data,
+          ...data,
           version: record.version,
           syncStatus: "synced",
           lastSyncedAt: new Date(),
@@ -317,7 +394,7 @@ export class SyncEngine {
     // Genuine conflict: local edits vs a server change.
     const resolution = resolveConflict(
       { data: local, version: localVersion },
-      { data: { ...record.data }, version: record.version, deleted: record.deleted },
+      { data: { ...data }, version: record.version, deleted: record.deleted },
     );
     await db
       .update(table as SQLiteTable)
