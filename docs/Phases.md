@@ -574,7 +574,7 @@ _Implemented in code; `tsc --noEmit` and `expo lint` clean. On-device QA still p
 
 ## Phase 8 — Backend Modernization
 
-**Status:** 🔄 In progress — schema, auth, sync API, barcode API, and background workers merged to `develop`; mobile auth/sync wiring implemented on `feat/mobile-auth-sync`, not yet merged
+**Status:** ✅ Complete — schema, auth, sync API, barcode API, background workers, and mobile auth/sync wiring all merged to `develop`
 **Effort:** 6 days (original estimate; actual scope spans 6 PRs, see below)
 
 > **As built — deviations from the original plan below:**
@@ -763,6 +763,40 @@ Adds backend, authentication, cross-device sync, price comparison.
 
 ---
 
+## Phase 11 — Testing & CI Infrastructure
+
+**Status:** ✅ Complete — `feat/testing-infrastructure` merged to `develop`; CI/release-branch workflows and a follow-up CI-unblocking fix added directly on `develop`
+**Not in the original phase plan** — added after Phase 8 once there was enough surface area (mobile screens, backend routes, sync) to justify automated coverage and a CI gate.
+
+### Goal
+Give the mobile and backend workspaces real automated test coverage at the unit/integration/E2E layers, and gate `develop`/`main` on it via GitHub Actions.
+
+### Deliverables
+| Artifact | Status |
+|---|---|
+| Vitest for `backend/` (`backend/vitest.config.ts`), loading `dotenv/config` so import-time env reads (`AuthService` → `lib/supabase.ts`) behave like `npm run dev` | ✅ |
+| Backend unit test for `SyncService`'s `coercePayloadForDb`/`coerceRowForWire` (column whitelisting, wire-seconds ↔ `Date` conversion, null-vs-Invalid-Date) | ✅ |
+| Backend integration test hitting the real `buildApp()` via `.inject()` (`/health` + 404 fallback, no real port or DB) | ✅ |
+| Jest + `jest-expo` preset + RNTL v14 for `mobile/`, `@/*` mapped through `moduleNameMapper` to match the app's own path alias | ✅ |
+| Mobile unit tests: `alerts.test.ts` (pure alert-rule logic) and `OptionChips.test.tsx` (render/interaction, incl. RNTL v14's async `render`/`fireEvent`) | ✅ |
+| Maestro E2E flows: `smoke-launch.yaml` (no seed data needed) and `add-product.yaml` (seeded Supabase account → add-product journey) | ✅ |
+| `testID`s added to elements the Maestro flows target (`login-email-input`, `add-product-fab`, `product-save-button`, etc.) | ✅ |
+| `CLAUDE.md` Testing section documenting the unit/integration/E2E coverage policy (what needs a test, at which layer, before committing) | ✅ |
+| `.github/workflows/ci.yml` — lint (mobile) + type-check (mobile + backend) + both test suites, on every push and on PRs into `main`/`develop` | ✅ |
+| `.github/workflows/release-branch.yml` — on PR merge into `develop`, cuts a `release/vX.Y.Z` branch and opens a PR into `main` for manual review (never merges itself) | ✅ |
+| Fix: lazy-initialize Supabase clients (`backend/src/lib/supabase.ts`) so CI's env-var-less lint/type-check/test steps don't eagerly throw on import | ✅ |
+
+### As Built
+> - Landed as three sequential commits merged together as `feat/testing-infrastructure` (GitHub PR #15): Vitest+backend coverage, Jest+RNTL+mobile coverage, then the Maestro flows — followed by a `docs(claude)` commit documenting the coverage policy in the same PR.
+> - The CI workflows (`ci.yml`, `release-branch.yml`) were **not** part of that PR — they were added directly on `develop` afterward, since they only needed to reference commands the previous PR had already made real.
+> - Rolling out `ci.yml` surfaced that `backend/src/lib/supabase.ts` created its Supabase clients at module-import time, which throws in CI's lint/type-check steps where Supabase env vars aren't set. Fixed by lazy-initializing both clients on first use; `CLAUDE.md`, `README.md`, `SETUP.md`, and this file's Phase 8 PR-19 status line were updated in the same commit to reflect CI's existence and `feat/mobile-auth-sync`'s actual merged state.
+
+### Pull Requests
+- PR 20 (as built: GitHub PR #15): `feat/testing-infrastructure` — Vitest (backend) + Jest/RNTL (mobile) + Maestro E2E flows + testing-policy docs ✅
+- CI workflows (`ci.yml`, `release-branch.yml`) — direct commits to `develop`, no PR ✅
+
+---
+
 ## Pull Request Map
 
 | PR | Branch | Phase | Description |
@@ -784,3 +818,4 @@ Adds backend, authentication, cross-device sync, price comparison.
 | 15 | `feat/background-workers` | 8 | BullMQ + SyncWorker |
 | 16 | `perf/sqlite-indexes` | 9 | SQLite index migrations |
 | 17 | `perf/list-rendering` | 9 | FlatList tuning + expo-image |
+| 20 | `feat/testing-infrastructure` | 11 | Vitest, Jest/RNTL, Maestro E2E, testing-policy docs — GitHub PR #15 ✅ |
