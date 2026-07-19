@@ -53,7 +53,8 @@ import { ProductCategory } from '@clay/shared/constants/categories';
 | `mobile/models/index.ts` | Schema exports (used by drizzle.config.ts) |
 | `mobile/controller/ShoppingListController.ts` | Sync-aware multi-list CRUD + items + inventory-alert restock |
 | `mobile/controller/InventoryController.ts` | Sync-aware inventory CRUD + movement log |
-| `mobile/controller/ProductController.ts` | Product catalog ops (find-or-create by name **or barcode**) |
+| `mobile/controller/ProductController.ts` | Product catalog ops (find-or-create by name **or barcode**, plus direct create/update/soft-delete for the Groceries tab) |
+| `mobile/app/(tabs)/product.tsx` | Groceries tab — catalog search/filter/browse |
 | `mobile/models/inventoryMovements.ts` | Append-only inventory movement-log table |
 | `mobile/lib/inventory/alerts.ts` | Low-stock / expiry / out-of-stock alert rules |
 | `mobile/app/scan/index.tsx` | Barcode scan-flow orchestrator (scan → lookup → add to inventory/list) |
@@ -107,7 +108,7 @@ See `mobile/tailwind.config.js` for full theme. Use NativeWind Tailwind classes 
 - ✅ Shopping lists — DB-backed multi-list CRUD, freeform/checkable items, "Add low-stock items" restock from inventory alerts, bulk check/clear; sync-aware writes (`mobile/controller/ShoppingListController.ts`, `mobile/hooks/useShoppingLists.ts`, `mobile/app/(tabs)/list.tsx` + `ListDetails/`, `mobile/components/shopping/`)
 - ✅ Barcode scanner — `expo-camera` scan flow (`mobile/app/scan/`, `mobile/components/scan/`), local SQLite barcode lookup, offline skeleton-product creation, add-to-inventory/list; remote Open Food Facts lookup deferred to Phase 8. **Requires a native rebuild** (`npx expo run:android`) for the camera module.
 - ✅ Price comparison — stores + per-product price tracking, side-by-side comparison, "cheapest basket" optimizer (`minimize_cost`/`minimize_trips`); sync-aware writes (`mobile/controller/StoreController.ts`, `mobile/controller/PriceController.ts`, `mobile/hooks/useStores.ts`, `mobile/hooks/usePrices.ts`, `mobile/app/(tabs)/prices.tsx` + `PricesDetails/`, `mobile/components/pricing/`). Backend price/store routes deferred to Phase 8.
-- 🔄 Groceries/product tab UI — still hardcoded (products are auto-created via inventory find-or-create / barcode scan; catalog screen lands later)
+- ✅ Groceries/product catalog tab — real SQLite-backed catalog browse/search/category-filter, manual add/edit/soft-delete, links out to Prices; sync-aware writes (`mobile/controller/ProductController.ts`, `mobile/hooks/useProducts.ts`, `mobile/app/(tabs)/product.tsx` + `ProductDetails/[id].tsx`, `mobile/components/ProductCard.tsx`, `mobile/components/product/ProductFormModal.tsx`). No phase number assigned; backend product routes remain covered by the existing Phase 8 barcode-lookup API.
 - ✅ Backend Postgres schema — `users`, `sync_log` + `user_id`-owned domain tables (`backend/src/db/schema/`, Phase 8 PR #8). On `develop`, docker-compose runs local Postgres+Redis; on `feat/supabase-backend`, Postgres is a hosted Supabase project instead (docker-compose only runs Redis) and `users` FKs to Supabase's `auth.users` — see `docs/Supabase.md`.
 - ✅ Auth — `requireAuth` middleware (`backend/src/middleware/auth.ts`) unchanged across branches. On `develop`: JWT access tokens + Redis-backed opaque refresh tokens, bcrypt (`backend/src/services/AuthService.ts`, Phase 8 PR #9). On `feat/supabase-backend`: `AuthService` proxies Supabase Auth instead (JWKS-verified tokens, Supabase-managed refresh rotation) — same `AuthTokens` shape and routes, so mobile is identical either way.
 - ✅ Sync API — generic push/pull routes (`backend/src/routes/sync.ts`, `backend/src/services/SyncService.ts`) (Phase 8 PR #10)

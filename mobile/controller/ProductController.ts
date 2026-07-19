@@ -1,8 +1,12 @@
 import { SyncController } from "@/controller/SyncController";
-import { syncCreatePatch } from "@/lib/sync/stamping";
+import {
+  syncCreatePatch,
+  syncDeletePatch,
+  syncUpdatePatch,
+} from "@/lib/sync/stamping";
 import { db } from "@/models/db";
 import { products, type Product } from "@/models/products";
-import type { ProductCategory } from "@clay/shared";
+import type { ProductCategory, ProductInput } from "@clay/shared";
 import { and, eq, isNull, sql } from "drizzle-orm";
 
 /**
@@ -125,4 +129,92 @@ export const ProductController = {
     });
     return created;
   },
+
+  /** Add a product to the catalog directly, from the Groceries tab's form. */
+  create: async (input: ProductInput): Promise<number> => {
+    const [created] = await db
+      .insert(products)
+      .values({
+        name: input.name.trim(),
+        brand: input.brand?.trim() || null,
+        category: input.category ?? null,
+        barcode: input.barcode?.trim() || null,
+        unit: input.unit ?? null,
+        notes: input.notes?.trim() || null,
+        ...syncCreatePatch(),
+      })
+      .returning();
+
+    await SyncController.enqueue({
+      table: "products",
+      recordId: created.id,
+      operation: "CREATE",
+      payload: {
+        name: created.name,
+        brand: created.brand,
+        category: created.category,
+        barcode: created.barcode,
+        unit: created.unit,
+        notes: created.notes,
+      },
+    });
+    return created.id;
+  },
+
+  /** Edit a catalog product's fields. */
+  update: async (id: number, input: ProductInput): Promise<void> => {
+    const current = await requireProduct(id);
+    const now = new Date();
+    const patch = {
+      name: input.name.trim(),
+      brand: input.brand?.trim() || null,
+      category: input.category ?? null,
+      barcode: input.barcode?.trim() || null,
+      unit: input.unit ?? null,
+      notes: input.notes?.trim() || null,
+    };
+
+    await db
+      .update(products)
+      .set({ ...patch, ...syncUpdatePatch(current, now) })
+      .where(eq(products.id, id));
+
+    await SyncController.enqueue({
+      table: "products",
+      recordId: id,
+      operation: "UPDATE",
+      payload: patch,
+    });
+  },
+
+  /**
+   * Soft-delete a catalog product. Inventory items, list items, and prices
+   * that reference it keep their `productId` — this only removes the row from
+   * catalog views, matching how those modules already ignore `products.deletedAt`.
+   */
+  remove: async (id: number): Promise<void> => {
+    const current = await requireProduct(id);
+    const now = new Date();
+    await db
+      .update(products)
+      .set(syncDeletePatch(current, now))
+      .where(eq(products.id, id));
+    await SyncController.enqueue({
+      table: "products",
+      recordId: id,
+      operation: "DELETE",
+      payload: null,
+    });
+  },
 };
+
+/** Load a product's sync identity, or throw if it's gone. */
+async function requireProduct(id: number): Promise<Product> {
+  const [row] = await db
+    .select()
+    .from(products)
+    .where(eq(products.id, id))
+    .limit(1);
+  if (!row) throw new Error(`Product ${id} not found`);
+  return row;
+}
