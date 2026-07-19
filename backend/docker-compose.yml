@@ -1,0 +1,18 @@
+services:
+  # Postgres is hosted by Supabase (see docs/Supabase.md) — no local
+  # container needed. Redis stays local for BullMQ + the barcode cache.
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - clay_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  clay_redis_data:

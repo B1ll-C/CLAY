@@ -20,7 +20,7 @@ Adds backend, authentication, cross-device sync, and price comparison.
 | Phase | Feature | Effort |
 |---|---|---|
 | 6 | Price comparison module | 6d |
-| 8 | Backend (Fastify + PostgreSQL + auth + sync) | 6d |
+| 8 | Backend (Fastify + Postgres/Supabase + auth + sync) | 6d |
 | 9 | Performance optimization | 3d |
 | — | Integration + QA | 5d |
 

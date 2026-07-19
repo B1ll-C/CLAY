@@ -1,0 +1,77 @@
+name: Create Release Branch
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [develop]
+
+jobs:
+  create-release-branch:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_PAT }}
+
+      - name: Compute next release version
+        id: version
+        run: |
+          git fetch --all
+
+          MAJOR=0
+          MINOR=0
+          LATEST_PATCH=0
+
+          while IFS= read -r branch; do
+            if [[ "$branch" =~ ^release/v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+              M="${BASH_REMATCH[1]}"
+              N="${BASH_REMATCH[2]}"
+              P="${BASH_REMATCH[3]}"
+              if (( M > MAJOR )) || \
+                 (( M == MAJOR && N > MINOR )) || \
+                 (( M == MAJOR && N == MINOR && P > LATEST_PATCH )); then
+                MAJOR=$M
+                MINOR=$N
+                LATEST_PATCH=$P
+              fi
+            fi
+          done < <(git branch -r | sed 's|.*origin/||' | tr -d ' ')
+
+          NEXT_PATCH=$(( LATEST_PATCH + 1 ))
+          BRANCH="release/v${MAJOR}.${MINOR}.${NEXT_PATCH}"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "Creating branch: $BRANCH"
+
+      - name: Create and push release branch
+        run: |
+          git checkout -b "${{ steps.version.outputs.branch }}"
+          git push origin "${{ steps.version.outputs.branch }}"
+
+      - name: Open PR to main
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+          BRANCH: ${{ steps.version.outputs.branch }}
+        run: |
+          VERSION="${BRANCH#release/}"
+          BODY_FILE=$(mktemp)
+          cat > "$BODY_FILE" << EOF
+          ## Release ${VERSION}
+
+          Merging release branch \`${BRANCH}\` into \`main\`.
+
+          ### Checklist
+          - [x] Release branch created from \`develop\`
+          - [ ] CI passing
+          - [ ] Manual review before merge to \`main\`
+          EOF
+
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "Release ${VERSION}" \
+            --body-file "$BODY_FILE"

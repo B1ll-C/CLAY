@@ -1,51 +1,48 @@
-import { Image, Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 
-type ProductCardProps = {
-  name: string;
-  price: string;
-  image: string;
-  onPress?: () => void;
-};
+import { SwipeToDelete } from "@/components/common/SwipeToDelete";
+import type { Product } from "@/models/products";
 
-export default function ProductCard({
-  name,
-  price,
-  image,
-  onPress,
-}: ProductCardProps) {
+interface ProductCardProps {
+  product: Product;
+  onPress: () => void;
+  onDelete: () => void;
+}
+
+/** A single catalog row on the Groceries tab: name, brand, category, barcode. */
+export default function ProductCard({ product, onPress, onDelete }: ProductCardProps) {
   return (
-    <TouchableOpacity
-      //   onPress={onPress}
-      className="w-32 bg-white rounded-2xl shadow-md p-4 mb-4"
-      activeOpacity={0.8}
-    >
-      {/* Product Image */}
-      <View className="items-center">
-        <Image
-          source={{ uri: image }}
-          className="w-40 h-40 rounded-xl"
-          resizeMode="cover"
-        />
-      </View>
-
-      {/* Product Info */}
-      <View className="mt-3">
-        <Text className="text-lg font-semibold text-gray-800" numberOfLines={1}>
-          {name}
-        </Text>
-        <Text className="text-gray-600 text-xs font-bold mt-1">
-          9T4X7A2LQ8M1B6C3D5E
-        </Text>
-        <Text className="text-green-600 text-base font-bold mt-1">{price}</Text>
-      </View>
-
-      {/* Add to Cart Button */}
+    <SwipeToDelete onDelete={onDelete} spacing={12}>
       <TouchableOpacity
-        className="mt-4 bg-primary py-2 rounded-xl"
+        activeOpacity={0.8}
         onPress={onPress}
+        className="rounded-2xl bg-white p-4 shadow-sm"
       >
-        <Text className="text-white text-center font-semibold">Details</Text>
+        <View className="flex-row items-start justify-between">
+          <View className="flex-1 pr-3">
+            <Text className="text-base font-semibold text-gray-900" numberOfLines={1}>
+              {product.name}
+            </Text>
+            {product.brand ? (
+              <Text className="text-xs text-gray-400" numberOfLines={1}>
+                {product.brand}
+              </Text>
+            ) : null}
+            {product.barcode ? (
+              <Text className="mt-1 text-xs text-gray-400" numberOfLines={1}>
+                {product.barcode}
+              </Text>
+            ) : null}
+          </View>
+          {product.category ? (
+            <View className="rounded-full bg-primary-light px-3 py-1">
+              <Text className="text-xs font-medium text-primary-dark" numberOfLines={1}>
+                {product.category}
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </TouchableOpacity>
-    </TouchableOpacity>
+    </SwipeToDelete>
   );
 }

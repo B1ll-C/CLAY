@@ -1,4 +1,5 @@
 import { expo } from "@/models/db";
+import { useAuthStore } from "@/store/authStore";
 import { useDrizzleStudio } from "expo-drizzle-studio-plugin/build/useDrizzleStudio";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -7,6 +8,7 @@ import { Text, TouchableOpacity, View } from "react-native";
 function Index() {
   useDrizzleStudio(expo);
   const router = useRouter();
+  const status = useAuthStore((s) => s.status);
   return (
     <View className="flex-1 bg-white items-center justify-center">
       {/* Top Section */}
@@ -38,7 +40,11 @@ function Index() {
       <View className="absolute bottom-40 items-center">
         <TouchableOpacity
           className="bg-[#8eb692] px-6 py-3 rounded-full"
-          onPress={() => router.push("/(tabs)/product")}
+          onPress={() =>
+            router.push(
+              status === "signedIn" ? "/(tabs)/product" : "/(auth)/login",
+            )
+          }
         >
           <Text className="text-white text-lg font-bold">Get Started</Text>
         </TouchableOpacity>
