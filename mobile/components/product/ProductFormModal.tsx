@@ -115,7 +115,12 @@ export function ProductFormModal({
             <Text className="text-base font-semibold text-gray-900">
               {isEdit ? "Edit product" : "Add product"}
             </Text>
-            <Pressable onPress={handleSave} disabled={saving} hitSlop={8}>
+            <Pressable
+              testID="product-save-button"
+              onPress={handleSave}
+              disabled={saving}
+              hitSlop={8}
+            >
               <Text className="text-base font-semibold text-primary-dark">
                 {saving ? "Saving…" : "Save"}
               </Text>
@@ -131,6 +136,7 @@ export function ProductFormModal({
 
             <Field label="Name">
               <TextInput
+                testID="product-name-input"
                 className={inputClass}
                 placeholder="e.g. Whole Milk"
                 value={name}

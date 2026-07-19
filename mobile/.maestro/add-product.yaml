@@ -1,0 +1,29 @@
+# Logs into a seeded test account, opens the Groceries tab's add-product
+# modal, saves a new product, and confirms it shows up in the catalog list.
+#
+# Needs a real account to log into (Supabase-backed auth) — export
+# TEST_EMAIL / TEST_PASSWORD for a seeded test user before running, e.g.:
+#   maestro test --env TEST_EMAIL=... --env TEST_PASSWORD=... .maestro/add-product.yaml
+#
+# Each run creates a real row via the product it saves; there's no teardown
+# step, so re-running repeatedly will accumulate rows named "E2E Test Product".
+appId: com.anonymous.CLAY
+---
+- launchApp
+- tapOn:
+    id: "login-email-input"
+- inputText: "${TEST_EMAIL}"
+- tapOn:
+    id: "login-password-input"
+- inputText: "${TEST_PASSWORD}"
+- tapOn:
+    id: "login-submit-button"
+- assertVisible: "Groceries"
+- tapOn:
+    id: "add-product-fab"
+- tapOn:
+    id: "product-name-input"
+- inputText: "E2E Test Product"
+- tapOn:
+    id: "product-save-button"
+- assertVisible: "E2E Test Product"

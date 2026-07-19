@@ -1,0 +1,10 @@
+# Smoke test: the app launches and reaches the login screen. Needs no seeded
+# data or credentials, so it's the one E2E flow that always runs cleanly.
+appId: com.anonymous.CLAY
+---
+- launchApp
+- assertVisible: "Welcome back"
+- assertVisible:
+    id: "login-email-input"
+- assertVisible:
+    id: "login-password-input"
