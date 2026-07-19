@@ -26,7 +26,7 @@ function cols(entry: SyncTableEntry) {
 }
 
 /** Whitelists + type-coerces an incoming payload's columns for a Drizzle insert/update. */
-function coercePayloadForDb(entry: SyncTableEntry, payload: Row): Row {
+export function coercePayloadForDb(entry: SyncTableEntry, payload: Row): Row {
   const values: Row = {};
   for (const key of entry.columns) {
     if (!(key in payload)) continue;
@@ -41,7 +41,7 @@ function coercePayloadForDb(entry: SyncTableEntry, payload: Row): Row {
 }
 
 /** Whitelists + type-coerces a DB row's columns into the wire `data` shape. */
-function coerceRowForWire(entry: SyncTableEntry, row: Row): Row {
+export function coerceRowForWire(entry: SyncTableEntry, row: Row): Row {
   const data: Row = {};
   for (const key of entry.columns) {
     const value = row[key];
