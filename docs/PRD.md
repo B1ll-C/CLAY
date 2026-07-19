@@ -20,3 +20,7 @@ See individual phase PRDs:
 - Shopping Lists: Phase 5
 - Price Comparison: Phase 6
 - Barcode Scanner: Phase 7
+
+## V2
+
+The V2 release (household sharing, push notifications, spending analytics, receipt OCR, deferred performance pass) has its own PRD with per-phase user stories, requirements, and a trackable feature checklist: **`docs/PRD-V2.md`**.

@@ -38,9 +38,9 @@ Track cross-cutting technical requirements across the full build.
 - [ ] Conflict resolution tested with simulated offline edits (Phase 3)
 - [ ] Sync status visible to user (last synced timestamp) (Phase 3)
 
-## Performance
-- [ ] SQLite indexes added for all high-frequency queries (Phase 9)
-- [ ] FlatList tuned: `windowSize`, `maxToRenderPerBatch`, `keyExtractor` (Phase 9)
-- [ ] `expo-image` used for all product images (Phase 9)
-- [ ] Postgres indexes on `user_id`, `deleted_at`, `sync_status` (Phase 9)
-- [ ] Redis cache for barcode lookups (TTL 24h) (Phase 9)
+## Performance (Phase 9 — deferred, runs last in V2; see docs/PRD-V2.md)
+- [ ] SQLite indexes added for all high-frequency queries (incl. V2 tables)
+- [ ] FlatList tuned: `windowSize`, `maxToRenderPerBatch`, `keyExtractor`
+- [ ] `expo-image` used for all product images
+- [ ] Postgres indexes on `user_id`, `deleted_at`, `sync_status`
+- [x] Redis cache for barcode lookups (TTL 24h) — shipped early in Phase 8 (`BarcodeService`)

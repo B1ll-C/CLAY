@@ -72,7 +72,7 @@ import { ProductCategory } from '@clay/shared/constants/categories';
 | `backend/src/services/BarcodeService.ts` | Barcode lookup: Redis cache → Postgres `products` → Open Food Facts fallback |
 | `backend/src/workers/CleanupWorker.ts` | BullMQ nightly cron — purges soft-deleted rows older than 90 days |
 | `backend/src/worker.ts` | Standalone background-worker process entry point (`npm run worker`, separate from the HTTP server) |
-| `backend/src/lib/supabase.ts` | Supabase clients (anon-key + admin) and JWKS set — `feat/supabase-backend` only, see `docs/Supabase.md` |
+| `backend/src/lib/supabase.ts` | Supabase clients (anon-key + admin) and JWKS set, lazy-initialized — see `docs/Supabase.md` |
 | `shared/types/shopping.ts` | Shared TypeScript types |
 
 ## Database
@@ -117,13 +117,13 @@ Color palette (sage green theme):
 
 See `mobile/tailwind.config.js` for full theme. Use NativeWind Tailwind classes in all components.
 
-## Current State (Phases 1-7 complete — MVP + Phase 6 offline feature set complete)
+## Current State (Phases 1-8 + 11 complete — V1 complete; V2 planned in `docs/PRD-V2.md`)
 
 - ✅ Monorepo structure
 - ✅ SQLite + Drizzle ORM foundation
 - ✅ State management — Zustand (UI state, `mobile/store/`) + TanStack Query v5 (`mobile/lib/queryClient.ts`, `mobile/hooks/`)
 - ✅ Zod validation schemas in `shared/validation/` (`@clay/shared`) — domain + sync wire format
-- ✅ Backend scaffold — Fastify + Drizzle + Postgres connection (Supabase-hosted on `feat/supabase-backend`, see `docs/Supabase.md`), `/health` + `/health/db`, migration runner
+- ✅ Backend scaffold — Fastify + Drizzle + Supabase-hosted Postgres (see `docs/Supabase.md`), `/health` + `/health/db`, migration runner
 - ✅ Offline-first schema — `products`, `inventory_items`, `inventory_movements`, `shopping_lists`, `shopping_list_items`, `stores`, `store_prices` + `sync_queue`, all with sync columns (`mobile/models/`)
 - ✅ SyncEngine — push/pull/conflict + outbox (`mobile/lib/sync/`, `mobile/controller/SyncController.ts`), live over HTTP via `HttpSyncTransport` (Phase 8 PR #19)
 - ✅ `useNetworkStatus` + `useSyncStatus` hooks
@@ -133,8 +133,8 @@ See `mobile/tailwind.config.js` for full theme. Use NativeWind Tailwind classes 
 - ✅ Barcode scanner — `expo-camera` scan flow (`mobile/app/scan/`, `mobile/components/scan/`), local SQLite barcode lookup, offline skeleton-product creation, add-to-inventory/list; remote Open Food Facts lookup deferred to Phase 8. **Requires a native rebuild** (`npx expo run:android`) for the camera module.
 - ✅ Price comparison — stores + per-product price tracking, side-by-side comparison, "cheapest basket" optimizer (`minimize_cost`/`minimize_trips`); sync-aware writes (`mobile/controller/StoreController.ts`, `mobile/controller/PriceController.ts`, `mobile/hooks/useStores.ts`, `mobile/hooks/usePrices.ts`, `mobile/app/(tabs)/prices.tsx` + `PricesDetails/`, `mobile/components/pricing/`). Backend price/store routes deferred to Phase 8.
 - ✅ Groceries/product catalog tab — real SQLite-backed catalog browse/search/category-filter, manual add/edit/soft-delete, links out to Prices; sync-aware writes (`mobile/controller/ProductController.ts`, `mobile/hooks/useProducts.ts`, `mobile/app/(tabs)/product.tsx` + `ProductDetails/[id].tsx`, `mobile/components/ProductCard.tsx`, `mobile/components/product/ProductFormModal.tsx`). No phase number assigned; backend product routes remain covered by the existing Phase 8 barcode-lookup API.
-- ✅ Backend Postgres schema — `users`, `sync_log` + `user_id`-owned domain tables (`backend/src/db/schema/`, Phase 8 PR #8). On `develop`, docker-compose runs local Postgres+Redis; on `feat/supabase-backend`, Postgres is a hosted Supabase project instead (docker-compose only runs Redis) and `users` FKs to Supabase's `auth.users` — see `docs/Supabase.md`.
-- ✅ Auth — `requireAuth` middleware (`backend/src/middleware/auth.ts`) unchanged across branches. On `develop`: JWT access tokens + Redis-backed opaque refresh tokens, bcrypt (`backend/src/services/AuthService.ts`, Phase 8 PR #9). On `feat/supabase-backend`: `AuthService` proxies Supabase Auth instead (JWKS-verified tokens, Supabase-managed refresh rotation) — same `AuthTokens` shape and routes, so mobile is identical either way.
+- ✅ Backend Postgres schema — `users`, `sync_log` + `user_id`-owned domain tables (`backend/src/db/schema/`, Phase 8 PR #8). Postgres is a hosted Supabase project (`feat/supabase-backend` merged via PR #14) — docker-compose only runs Redis, and `users` FKs to Supabase's `auth.users` — see `docs/Supabase.md`.
+- ✅ Auth — `requireAuth` middleware (`backend/src/middleware/auth.ts`) + `AuthService` proxying Supabase Auth (JWKS-verified access tokens, Supabase-managed refresh rotation) (`backend/src/services/AuthService.ts`; originally local JWT+Redis+bcrypt in Phase 8 PR #9, replaced by the Supabase swap in PR #14 — same `AuthTokens` shape and routes, so mobile was untouched).
 - ✅ Sync API — generic push/pull routes (`backend/src/routes/sync.ts`, `backend/src/services/SyncService.ts`) (Phase 8 PR #10)
 - ✅ Barcode API — `GET /api/v1/products/barcode/:code`, Redis cache → Postgres → Open Food Facts fallback (`backend/src/routes/products.ts`, `backend/src/services/BarcodeService.ts`) (Phase 8 PR #11)
 - ✅ Background workers — BullMQ `CleanupWorker` (nightly cron, purges soft-deletes >90d) + standalone worker process (`backend/src/lib/queue.ts`, `backend/src/workers/CleanupWorker.ts`, `backend/src/worker.ts`) (Phase 8 PR #18)
@@ -142,4 +142,4 @@ See `mobile/tailwind.config.js` for full theme. Use NativeWind Tailwind classes 
 
 ## Phase Checklist
 
-See `docs/Roadmap.md` for the full release plan.
+See `docs/Roadmap.md` for the full release plan. V2 (Phases 12-15 + the deferred Phase 9 performance pass, in that order) is specced in `docs/PRD-V2.md`, which also holds the trackable V2 feature checklist.

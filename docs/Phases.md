@@ -670,8 +670,9 @@ backend/.env.example                      — all required env vars documented
 
 ## Phase 9 — Performance Optimization
 
-**Status:** ⬜ Not started
-**Effort:** 3 days (distributed across other phases)
+**Status:** ⏸ Deferred → scheduled **last in V2** (P4), after Phases 12–15 — see `docs/PRD-V2.md`
+**Effort:** 3 days
+**Why deferred:** pure optimization with no user-facing feature; running it after V2 means the index/tuning pass also covers V2's new tables (`households`, `device_push_tokens`, movement cost columns) and screens. Note: the "Redis cache for barcode lookups" item below already shipped in Phase 8 (`BarcodeService`).
 
 ### Goal
 Identify and eliminate the most impactful bottlenecks in mobile rendering, SQLite queries, and backend throughput.
@@ -746,14 +747,14 @@ Adds backend, authentication, cross-device sync, price comparison.
 | 9 | Performance optimization | 3d |
 | — | Integration + QA | 5d |
 
-### V2 (~30 additional dev days)
-| Feature |
-|---|
-| Household / family list sharing |
-| Push notifications (low-stock, expiry) |
-| Receipt scanning (OCR → auto-update prices) |
-| Aggregate spending analytics |
-| Multiple household profiles |
+### V2 (~28 additional dev days) — planned in `docs/PRD-V2.md`
+| Priority | Phase | Feature | Effort |
+|---|---|---|---|
+| P0 | 12 | Household / family list sharing | 8d |
+| P1 | 13 | Push notifications (local + household push) | 5d |
+| P2 | 14 | Spending analytics | 5d |
+| P3 | 15 | Receipt scanning (OCR → auto-update prices) | 7d |
+| P4 | 9 | Performance optimization (deferred from V1) | 3d |
 
 ### Future
 - AI-generated shopping lists from purchase history
@@ -797,6 +798,101 @@ Give the mobile and backend workspaces real automated test coverage at the unit/
 
 ---
 
+## Phase 12 — Household / Family List Sharing (V2 · P0)
+
+**Status:** ⬜ Not started
+**Effort:** 8 days
+**PRD:** `docs/PRD-V2.md` (user stories, requirements, checklist)
+
+### Goal
+Multiple users share shopping lists inside a household, with invite codes, membership roles, sync-scoped visibility, and per-item attribution.
+
+### Deliverables
+| Artifact | Status |
+|---|---|
+| Backend `households` + `household_members` schema + migrations | ⬜ |
+| Invite codes (Redis, single-use, 48h TTL) + household routes under `/api/v1/households` | ⬜ |
+| SyncService scoping: pull returns own rows + household rows; push validates membership | ⬜ |
+| `shopping_lists.household_id` on both schemas (supersedes `is_shared`) | ⬜ |
+| Attribution: `shopping_list_items.created_by`/`checked_by`, `users.display_name` | ⬜ |
+| Mobile: local `households` mirror, household screens, shared-list UX | ⬜ |
+
+### Pull Requests
+- PR 21: `feat/households-backend` — schema, routes, sync scoping
+- PR 22: `feat/households-mobile` — household screens, shared-list UX + attribution
+
+---
+
+## Phase 13 — Push Notifications (V2 · P1)
+
+**Status:** ⬜ Not started
+**Effort:** 5 days
+**PRD:** `docs/PRD-V2.md`
+
+### Goal
+Inventory alerts as offline-capable local notifications; household activity as server push (depends on Phase 12).
+
+### Deliverables
+| Artifact | Status |
+|---|---|
+| `expo-notifications` + permission flow + settings screen (toggles, quiet hours) | ⬜ |
+| Local scheduling from `mobile/lib/inventory/alerts.ts` rules | ⬜ |
+| `device_push_tokens` table + register/unregister route | ⬜ |
+| `NotificationWorker` (BullMQ, `CleanupWorker` pattern) → Expo Push API, batched household-activity pushes | ⬜ |
+| Notification deep links | ⬜ |
+
+### Pull Requests
+- PR 23: `feat/local-notifications` — expo-notifications, alert scheduling, settings
+- PR 24: `feat/push-notifications` — token registry, worker, household pushes
+
+---
+
+## Phase 14 — Spending Analytics (V2 · P2)
+
+**Status:** ⬜ Not started
+**Effort:** 5 days
+**PRD:** `docs/PRD-V2.md`
+
+### Goal
+Local, offline spending insight: monthly trend, category/store breakdowns, computed from the movement log with newly captured prices.
+
+### Deliverables
+| Artifact | Status |
+|---|---|
+| `inventory_movements.unit_price` + `store_id` (mobile + backend, rides existing sync) | ⬜ |
+| Price capture on restock + list check-off, pre-filled from `store_prices` | ⬜ |
+| Analytics screen: monthly trend, category + store breakdown, time-range selector | ⬜ |
+
+### Pull Requests
+- PR 25: `feat/spending-analytics` — cost columns + capture UX + analytics screen
+
+---
+
+## Phase 15 — Receipt Scanning OCR (V2 · P3)
+
+**Status:** ⬜ Not started
+**Effort:** 7 days
+**PRD:** `docs/PRD-V2.md`
+
+### Goal
+Photograph a receipt → OCR (backend-proxied provider) → parsed line items → user review → apply as store-price updates and optional purchases/restocks. Online-only.
+
+### Deliverables
+| Artifact | Status |
+|---|---|
+| OCR provider decision gate (Cloud Vision vs on-device ML Kit vs other) | ⬜ |
+| Receipt capture flow (`expo-camera`, separate from barcode scan) | ⬜ |
+| `POST /api/v1/receipts/scan` route, provider key server-side | ⬜ |
+| Line-item parsing + fuzzy catalog matching (skeleton products for unmatched) | ⬜ |
+| Review/edit/confirm screen — nothing written until confirmed | ⬜ |
+| Apply: `store_prices` updates + optional purchase movements + restock | ⬜ |
+
+### Pull Requests
+- PR 26: `feat/receipt-capture` — camera flow + OCR route
+- PR 27: `feat/receipt-review` — parse/match/review/apply
+
+---
+
 ## Pull Request Map
 
 | PR | Branch | Phase | Description |
@@ -816,6 +912,13 @@ Give the mobile and backend workspaces real automated test coverage at the unit/
 | 13 | `feat/barcode-api` | 7 | Backend lookup + Open Food Facts |
 | 14 | `feat/auth` | 8 | Register/login/JWT/SecureStore |
 | 15 | `feat/background-workers` | 8 | BullMQ + SyncWorker |
-| 16 | `perf/sqlite-indexes` | 9 | SQLite index migrations |
-| 17 | `perf/list-rendering` | 9 | FlatList tuning + expo-image |
+| 16 | `perf/sqlite-indexes` | 9 | SQLite + Postgres index migrations (rescheduled: last in V2) |
+| 17 | `perf/list-rendering` | 9 | FlatList tuning + expo-image (rescheduled: last in V2) |
 | 20 | `feat/testing-infrastructure` | 11 | Vitest, Jest/RNTL, Maestro E2E, testing-policy docs — GitHub PR #15 ✅ |
+| 21 | `feat/households-backend` | 12 | Households schema, invite/membership routes, sync scoping |
+| 22 | `feat/households-mobile` | 12 | Household screens, shared-list UX, attribution |
+| 23 | `feat/local-notifications` | 13 | expo-notifications, local alert scheduling, settings |
+| 24 | `feat/push-notifications` | 13 | Push-token registry, NotificationWorker, household pushes |
+| 25 | `feat/spending-analytics` | 14 | Movement cost columns, price capture, analytics screen |
+| 26 | `feat/receipt-capture` | 15 | Receipt camera flow + backend OCR route |
+| 27 | `feat/receipt-review` | 15 | Line-item parse/match/review/apply flow |

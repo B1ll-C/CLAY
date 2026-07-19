@@ -23,20 +23,23 @@ Adds backend, authentication, cross-device sync, and price comparison.
 |---|---|---|---|
 | 6 | Price comparison module | 6d | ✅ |
 | 8 | Backend (Fastify + Postgres + auth + sync + barcode API + background workers + mobile auth/sync wiring) | 6d | ✅ |
-| 9 | Performance optimization | 3d | ⬜ Not started |
+| 9 | Performance optimization | 3d | ⏸ Deferred → runs **last in V2** (pure optimization, no feature work — moving it after V2 lets the index/tuning pass cover V2 tables too) |
 | 11 | Testing & CI infrastructure (Vitest, Jest/RNTL, Maestro E2E, GitHub Actions CI + release-branch automation) — not in the original phase count, added once there was enough surface area to test | — | ✅ |
-| — | Integration + QA | 5d | 🔄 Ongoing (see Phase 9, and `feat/supabase-backend` below) |
+| — | Integration + QA | 5d | 🔄 Ongoing |
 
-`feat/supabase-backend` replaces Phase 8's local Postgres + bcrypt/JWT/Redis-refresh-token auth with hosted Supabase (Postgres + Auth); Drizzle and all mobile-facing routes are unchanged. It's an **alternative, unmerged branch** to the `develop` backend above, not additional scope — see `docs/Supabase.md`.
+The backend on `develop` is Supabase-hosted (Postgres + Auth) — `feat/supabase-backend` was merged via GitHub PR #14, replacing Phase 8's original local-Postgres + bcrypt/JWT/Redis-refresh-token auth. Drizzle and all mobile-facing routes were unchanged by that swap — see `docs/Supabase.md`.
 
-## V2 (~30 additional dev days)
+## V2 (~28 additional dev days) — 📋 Planned
 
-| Feature |
-|---|
-| Household / family list sharing |
-| Push notifications (low-stock, expiry) |
-| Receipt scanning (OCR → auto-update prices) |
-| Spending analytics |
+Full detail, user stories, and the trackable feature checklist live in **`docs/PRD-V2.md`**. Priority-ordered:
+
+| Priority | Phase | Feature | Effort | Status |
+|---|---|---|---|---|
+| P0 | 12 | Household / family list sharing | 8d | ⬜ Not started |
+| P1 | 13 | Push notifications (local alerts + household push) | 5d | ⬜ Not started |
+| P2 | 14 | Spending analytics | 5d | ⬜ Not started |
+| P3 | 15 | Receipt scanning (OCR → auto-update prices) | 7d | ⬜ Not started |
+| P4 | 9 | Performance optimization (deferred from V1, runs last) | 3d | ⬜ Not started |
 
 ## Future
 
