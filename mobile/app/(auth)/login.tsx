@@ -37,6 +37,7 @@ export default function Login() {
       </Text>
 
       <TextInput
+        testID="login-email-input"
         className="w-full bg-gray-100 rounded-xl px-4 py-3 mb-3"
         placeholder="Email"
         autoCapitalize="none"
@@ -46,6 +47,7 @@ export default function Login() {
         onChangeText={setEmail}
       />
       <TextInput
+        testID="login-password-input"
         className="w-full bg-gray-100 rounded-xl px-4 py-3 mb-3"
         placeholder="Password"
         secureTextEntry
@@ -59,6 +61,7 @@ export default function Login() {
       )}
 
       <TouchableOpacity
+        testID="login-submit-button"
         className="w-full bg-[#8FB996] rounded-full py-3 items-center mt-2"
         onPress={onSubmit}
         disabled={submitting || !email || !password}

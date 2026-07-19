@@ -143,6 +143,7 @@ export default function Product() {
         )}
 
         <TouchableOpacity
+          testID="add-product-fab"
           onPress={() => setFormOpen(true)}
           activeOpacity={0.85}
           className="absolute bottom-6 right-6 h-14 w-14 items-center justify-center rounded-full bg-primary-dark shadow-lg"

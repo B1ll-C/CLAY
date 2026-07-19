@@ -82,6 +82,26 @@ import { ProductCategory } from '@clay/shared/constants/categories';
 - Migrations run automatically in `app/_layout.tsx` via `useMigrations`
 - All tables include sync columns: `sync_status`, `server_id`, `version` (Phase 3+)
 
+## Testing
+
+**Before committing a feature, add the test coverage that applies to what changed:**
+- **Unit** — new pure logic (controllers' business rules, `mobile/lib/**` helpers, backend `services/**` helpers) gets a unit test alongside it.
+- **Integration** — a new/changed backend route or DB-touching flow gets a test that exercises it through `buildApp().inject()` (or the real controller against SQLite for mobile), not just the pure-logic pieces in isolation.
+- **E2E** — a new or changed user-facing screen/flow gets (or an existing Maestro flow is updated to cover) the path a user actually takes through it.
+A pure docs/chore change doesn't need any of these; a bugfix needs at minimum a regression test for the layer the bug lived in.
+
+| Layer | Where | Run |
+|---|---|---|
+| Mobile unit | `mobile/**/*.test.ts(x)`, colocated with the code under test | `npm test --workspace=mobile` |
+| Backend unit + integration | `backend/src/**/*.test.ts`, colocated with the code under test | `npm test --workspace=backend` |
+| Mobile E2E | `mobile/.maestro/*.yaml` | `npm run test:e2e --workspace=mobile` |
+
+**Mobile unit** — Jest via the `jest-expo` preset + `@testing-library/react-native` (RNTL) v14. RNTL v14 made `render`, `rerender`, `unmount`, and every `fireEvent.*` call **async** (React 19 / New Architecture support) — `await` them, or the query methods on `screen` throw `` `render` function has not been called `` even though render did run. `@/*` is mapped to `mobile/` via `moduleNameMapper` in `mobile/package.json`'s `jest` block, matching the app's own path alias.
+
+**Backend unit + integration** — Vitest, configured in `backend/vitest.config.ts`. Integration tests build the real Fastify app via `buildApp()` (`backend/src/app.ts`, kept separate from `index.ts`'s `.listen()` for exactly this) and hit routes with `.inject()` — no real port, no separate test server process. `vitest.config.ts` loads `dotenv/config` as a setup file so routes that read env vars at import time (e.g. `AuthService` → `lib/supabase.ts`) work the same as they do under `npm run dev`.
+
+**Mobile E2E** — [Maestro](https://maestro.mobile.dev), a standalone CLI (not an npm package): install via `curl -Ls "https://get.maestro.mobile.dev" | bash`. Flows live in `mobile/.maestro/` and target `appId: com.anonymous.CLAY` against an already-built app (dev client or APK — see the barcode scanner's native-rebuild note above) on a running emulator/device. `smoke-launch.yaml` needs no setup. `add-product.yaml` logs into a real Supabase-backed account and needs a seeded test user: `maestro test --env TEST_EMAIL=... --env TEST_PASSWORD=... mobile/.maestro/add-product.yaml`. Interactive elements Maestro flows target carry an explicit `testID` (e.g. `login-email-input`, `add-product-fab`, `product-save-button`) — add one when a new flow needs to target an element that doesn't have a stable, unique visible label.
+
 ## Design System
 
 Color palette (sage green theme):
